@@ -160,11 +160,21 @@ export default function HistoricalChart({ data }) {
             <Legend
               verticalAlign="bottom"
               height={28}
-              formatter={(value) => (
-                <span style={{ color: "#7a8a9a", fontSize: 10, fontFamily: "JetBrains Mono, monospace" }}>
-                  {value}
-                </span>
-              )}
+              formatter={(value) => {
+                const tips = {
+                  "Min daily risk": "Lowest EWMA VaR recorded that year — the calmest day's risk estimate.",
+                  "Max daily risk": "Highest EWMA VaR recorded that year — the most stressed day's risk estimate.",
+                  "Loss for year": "Total annual return when negative. Only drawn for down years.",
+                };
+                return (
+                  <span
+                    title={tips[value] ?? ""}
+                    style={{ color: "#7a8a9a", fontSize: 10, fontFamily: "JetBrains Mono, monospace", cursor: "help" }}
+                  >
+                    {value}
+                  </span>
+                );
+              }}
             />
 
             {visibleEvents.map((e) => (
