@@ -38,7 +38,7 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <span className="logo">EXTREME<span className="logo-accent">RISK</span></span>
+          <span className="logo">RISK<span className="logo-accent">LENS</span></span>
           <span className="subtitle">Market Risk Dashboard · 1% VaR / ES · 1000-day window</span>
         </div>
         {data && (

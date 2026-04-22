@@ -1,4 +1,4 @@
-# ExtremeRisk Clone
+# RiskLens
 
 A financial market risk dashboard modelled on extremerisk.org. Computes 1% VaR and ES for six major assets using three volatility models, displayed in a dark quant-terminal UI.
 
@@ -17,7 +17,7 @@ A financial market risk dashboard modelled on extremerisk.org. Computes 1% VaR a
 
 ```bash
 git clone <your-repo-url>
-cd extremerisk-clone
+cd risklens
 ```
 
 ### 2. Python environment
