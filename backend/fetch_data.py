@@ -2,15 +2,24 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 
-TICKERS = ["SPY", "QQQ", "GLD", "TLT", "EEM", "BTC-USD"]
+TICKERS = [
+    "SPY", "QQQ", "GLD", "TLT", "EEM", "BTC-USD",
+    "IWM", "HYG", "LQD", "XLF", "VNQ", "CGUS",
+]
 
 NAMES = {
-    "SPY": "S&P 500 ETF",
-    "QQQ": "Nasdaq 100 ETF",
-    "GLD": "Gold ETF",
-    "TLT": "20yr Treasury ETF",
-    "EEM": "Emerging Markets ETF",
-    "BTC-USD": "Bitcoin / USD",
+    "SPY":    "S&P 500 ETF",
+    "QQQ":    "Nasdaq 100 ETF",
+    "GLD":    "Gold ETF",
+    "TLT":    "20yr Treasury ETF",
+    "EEM":    "Emerging Markets ETF",
+    "BTC-USD":"Bitcoin / USD",
+    "IWM":    "Russell 2000 ETF",
+    "HYG":    "High Yield Bond ETF",
+    "LQD":    "Investment Grade Bond ETF",
+    "XLF":    "Financial Sector ETF",
+    "VNQ":    "Real Estate ETF",
+    "CGUS":   "Capital Group Core Equity ETF",
 }
 
 
