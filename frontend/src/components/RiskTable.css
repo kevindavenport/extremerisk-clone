@@ -1,0 +1,77 @@
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.risk-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.risk-table thead {
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+
+.risk-table th {
+  padding: 8px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.risk-table th.left { text-align: left; }
+.risk-table th.num  { text-align: right; }
+.risk-table th.center { text-align: center; }
+
+.risk-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+
+.risk-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.risk-table tbody tr:hover {
+  background: var(--bg3);
+}
+
+.risk-table td {
+  padding: 6px 12px;
+}
+
+.risk-table td.left  { text-align: left; }
+.risk-table td.num   { text-align: right; font-variant-numeric: tabular-nums; }
+.risk-table td.center { text-align: center; }
+
+.asset-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ticker {
+  color: var(--text-bright);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.name {
+  color: var(--text-dim);
+  font-size: 10px;
+}
+
+.price {
+  color: var(--text-bright);
+  font-weight: 600;
+}
+
+.gauge-cell {
+  padding: 4px 12px;
+  vertical-align: middle;
+}

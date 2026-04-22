@@ -1,0 +1,35 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0a0c0f;
+  --bg2: #0f1217;
+  --bg3: #151a21;
+  --border: #1e2530;
+  --text: #c8d0dc;
+  --text-dim: #5a6678;
+  --text-bright: #e8edf5;
+  --green: #00c97a;
+  --yellow: #f0b429;
+  --red: #e53e3e;
+  --accent: #3b82f6;
+  --font: "JetBrains Mono", "Courier New", monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+#root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
