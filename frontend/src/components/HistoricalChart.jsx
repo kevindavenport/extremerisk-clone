@@ -22,33 +22,35 @@ const EVENTS = [
   { year: 2022, label: "Ukraine\nwar",           row: 1 },
 ];
 
-// Bottom y-coordinate of each row's text block (in SVG units from top of SVG)
-const ROW_BOTTOM = [30, 56, 78];
+const FONT_SIZE = 11;
+const LINE_H = FONT_SIZE * 1.4;
+// Bottom y of each row (SVG coords from top). Margin top must be >= ROW_BOTTOM[-1] + padding.
+const ROW_BOTTOM = [38, 80];
 
 const EventLabel = ({ viewBox, label, row = 0 }) => {
   if (!viewBox) return null;
-  const { x, y } = viewBox; // y = top of chart plot area
+  const { x, y } = viewBox;
   const lines = label.split("\n");
-  const lineH = 9;
-  const blockH = lines.length * lineH;
-  const bottomY = ROW_BOTTOM[row] ?? ROW_BOTTOM[0];
+  const blockH = lines.length * LINE_H;
+  const bottomY = ROW_BOTTOM[Math.min(row, ROW_BOTTOM.length - 1)];
   const textTop = bottomY - blockH;
 
   return (
     <g>
       <line
-        x1={x} y1={bottomY + 3}
+        x1={x} y1={bottomY + 4}
         x2={x} y2={y - 2}
-        stroke="#2a3545" strokeWidth={1} strokeDasharray="2,3"
+        stroke="#2a4060" strokeWidth={1} strokeDasharray="3,3"
       />
       {lines.map((line, i) => (
         <text
           key={i}
           x={x}
-          y={textTop + i * lineH + lineH - 2}
+          y={textTop + i * LINE_H + LINE_H - 3}
           textAnchor="middle"
-          fill="#8896aa"
-          fontSize={7.5}
+          fill="#a8bcd4"
+          fontSize={FONT_SIZE}
+          fontWeight="500"
           fontFamily="JetBrains Mono, monospace"
         >
           {line}
@@ -116,15 +118,15 @@ export default function HistoricalChart({ data }) {
           Daily EWMA VaR (1% / $100 portfolio) · min &amp; max per year
         </span>
       </div>
-      <div style={{ width: "100%", height: 360 }}>
+      <div style={{ width: "100%", height: 380 }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={chartData}
-            margin={{ top: 100, right: 40, left: 4, bottom: 0 }}
+            margin={{ top: 110, right: 40, left: 4, bottom: 0 }}
             barCategoryGap="15%"
             barGap={1}
           >
-            <CartesianGrid vertical={false} stroke="#1a2130" />
+            <CartesianGrid vertical={false} stroke="#162038" />
 
             <XAxis
               dataKey="year"
@@ -142,7 +144,7 @@ export default function HistoricalChart({ data }) {
               width={36}
             />
 
-            <ReferenceLine y={0} stroke="#2e3a4a" strokeWidth={1} />
+            <ReferenceLine y={0} stroke="#1e3048" strokeWidth={1} />
 
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
 
