@@ -1,17 +1,16 @@
 # RiskLens — Executive Summary
 
 
-
 ## What It Is
 
-RiskLens is a quantitative market risk dashboard that computes daily Value-at-Risk (VaR) and tail-risk metrics across a portfolio of assets using multiple statistical models. It is modelled on academic risk measurement tools used by institutional researchers, but built to be accessible and visual. In its current form it covers six major liquid assets (S&P 500, Nasdaq, Gold, Long-dated Treasuries, Emerging Markets, and Bitcoin) and produces a fresh risk snapshot each time the backend is run.
+RiskLens is a quantitative market risk dashboard that computes daily Value-at-Risk (VaR) and tail-risk metrics across a portfolio of assets using multiple statistical models. It is modelled on academic risk measurement tools used by institutional researchers, but built to be accessible and visual. In its current form it covers twelve major liquid assets (S&P 500, Nasdaq 100, Gold, Long-dated Treasuries, Emerging Markets, Bitcoin, Russell 2000, High Yield Bonds, Investment Grade Bonds, Financials, Real Estate, and Capital Group Core Equity) and produces a fresh risk snapshot each time the backend is run.
 
 
 ## What the Metrics Mean
 
 **Value at Risk (VaR)** answers one question: *on a bad day, how much can I expect to lose?* Specifically, a 1% VaR of $3.44 on a $100 position means that on the worst 1% of trading days historically, you'd lose at least $3.44. It's a floor, not a ceiling.
 
-RiskLens computes VaR four ways, each with different assumptions:
+RiskLens computes VaR five ways, each with different assumptions:
 
 - **Historical Simulation (HS)** — no model assumptions. Just ranks the last 1,000 actual trading days and reads off the 1st percentile. Honest but slow to react to regime changes.
 - **EWMA** — uses exponentially weighted volatility, giving more weight to recent days (λ=0.94). Reacts quickly to spikes in volatility. The industry standard for daily risk desks.
@@ -25,14 +24,14 @@ RiskLens computes VaR four ways, each with different assumptions:
 
 **The Risk Gauge** contextualises today's EWMA VaR against the past two years of daily estimates for that asset. A reading of 85% doesn't mean high absolute risk — it means risk is elevated relative to recent history. This is more actionable than a raw number because it accounts for the asset's own volatility regime.
 
+**The Cross-Asset Correlation Chart** shows the 60-day rolling average pairwise correlation across ten core ETFs. In normal markets this sits around 0.15–0.35 — assets move independently and diversification works. The all-time peak in the dataset is 2022, not the GFC: the Fed's rate hike cycle caused stocks and bonds to sell off simultaneously, breaking the traditional 60/40 hedge. In the GFC, treasuries and gold surged as equities fell (flight to safety), so average correlation stayed moderate. This distinction matters — the correlation breakdown problem is most dangerous in rate and inflation shocks, not just in equity crashes.
 
 
 ## Current Usefulness — Even as a Pilot
 
 In its current form, RiskLens already does something most Bloomberg terminals and risk systems don't do cleanly: **it shows model disagreement at a glance.** When HS says 2.1, EWMA says 1.9, GARCH says 1.7, but EVT says 6.7 — that spread is a signal. It means the asset's tail behaviour is not well-described by a normal distribution and a naive risk number is likely understating true exposure. That's actionable intelligence for a PM today.
 
-The historical S&P 500 chart also provides instant macro context: where does current volatility sit relative to the Dot-com crash, GFC, and Covid? That framing matters for risk communication to clients and investment committees.
-
+The historical S&P 500 chart provides instant macro context: where does current volatility sit relative to the Dot-com crash, GFC, and Covid? The correlation chart adds a second dimension: is the current stress broad-based (everything correlated) or idiosyncratic (one asset moving independently)? That framing matters for risk communication to clients and investment committees.
 
 
 ## What It Becomes with Fund-Specific Work
@@ -52,7 +51,6 @@ The real value for a PM comes from pointing this at *the actual portfolio* rathe
 **PDF/scheduled reporting** — daily one-pager auto-generated and distributed to the investment committee. The data is already there; it's a rendering problem.
 
 
-
 ## Bottom Line
 
-RiskLens in its current form is a functioning multi-model risk monitor with 35 years of S&P context and real-time metrics on six major assets. The infrastructure — Python risk engine, JSON data layer, React dashboard — is designed to scale. Pointing it at a real fund's book, adding portfolio aggregation, and wiring up alerts would take it from a well-built pilot to a daily risk tool a PM would actually rely on.
+RiskLens in its current form is a functioning multi-model risk monitor with 35 years of S&P context, real-time metrics on twelve major assets, and a live cross-asset correlation chart that makes the diversification illusion visible. The infrastructure — Python risk engine, JSON data layer, React dashboard — is designed to scale. Pointing it at a real fund's book, adding portfolio aggregation, and wiring up alerts would take it from a well-built pilot to a daily risk tool a PM would actually rely on.

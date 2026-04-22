@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import RiskTable from "./components/RiskTable.jsx";
 import HistoricalChart from "./components/HistoricalChart.jsx";
+import CorrelationChart from "./components/CorrelationChart.jsx";
 import "./App.css";
 
 export default function App() {
@@ -71,6 +72,9 @@ export default function App() {
         {data && <RiskTable assets={data.assets} />}
         {data?.sp500_history && (
           <HistoricalChart data={data.sp500_history} />
+        )}
+        {data?.correlation_history && (
+          <CorrelationChart data={data.correlation_history} />
         )}
       </main>
 

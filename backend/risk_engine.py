@@ -163,6 +163,35 @@ def compute_sp500_history(returns: pd.Series, prices: pd.Series) -> list[dict]:
     return rows
 
 
+# Tickers with sufficient history for the cross-asset correlation chart.
+# Excludes CGUS (launched 2022) and BTC-USD (launched 2014) so the series
+# starts ~2007 and captures the GFC.
+CORR_TICKERS = ["SPY", "QQQ", "GLD", "TLT", "EEM", "IWM", "HYG", "LQD", "XLF", "VNQ"]
+
+
+def compute_rolling_correlation(returns: pd.DataFrame, window: int = 60, sample_every: int = 5) -> list[dict]:
+    """
+    Rolling average pairwise correlation across core ETFs.
+    Returns a list of {date, avg_corr} sampled every `sample_every` trading days.
+    """
+    cols = [c for c in CORR_TICKERS if c in returns.columns]
+    df = returns[cols].dropna()
+
+    n = len(cols)
+    results = []
+    for i in range(window, len(df), sample_every):
+        chunk = df.iloc[i - window:i]
+        corr_matrix = chunk.corr().values
+        # Mean of upper triangle (excluding diagonal)
+        pairs = [corr_matrix[r, c] for r in range(n) for c in range(r + 1, n)]
+        avg_corr = float(np.nanmean(pairs))
+        results.append({
+            "date": df.index[i].strftime("%Y-%m-%d"),
+            "avg_corr": round(avg_corr, 4),
+        })
+    return results
+
+
 def compute_asset_risk(ticker: str, returns: pd.Series, prices: pd.Series) -> dict:
     if len(returns) < WINDOW:
         window_rets = returns.values
