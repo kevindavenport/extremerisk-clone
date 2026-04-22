@@ -51,7 +51,7 @@ const CrisisLabel = ({ viewBox, label }) => {
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
-  const pct = (d?.avg_corr * 100).toFixed(1);
+  const val = d?.avg_corr?.toFixed(2);
   const level =
     d?.avg_corr >= 0.65 ? "High — diversification strained"
     : d?.avg_corr >= 0.5 ? "Elevated — assets moving together"
@@ -62,7 +62,7 @@ const CustomTooltip = ({ active, payload }) => {
       <div className="tt-year">{d?.date}</div>
       <div className="tt-row">
         <span style={{ color: "#60a5fa" }}>Avg corr</span>
-        <span>{pct}%</span>
+        <span>{val}</span>
       </div>
       <div style={{ marginTop: 6, fontSize: 11, color: "#8896aa", lineHeight: 1.4 }}>
         {level}
@@ -143,7 +143,7 @@ export default function CorrelationChart({ data }) {
 
             <YAxis
               domain={[0, 1]}
-              tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+              tickFormatter={(v) => v.toFixed(1)}
               tick={{ fill: "#8896aa", fontSize: 11, fontFamily: "JetBrains Mono, monospace" }}
               tickLine={false}
               axisLine={false}
