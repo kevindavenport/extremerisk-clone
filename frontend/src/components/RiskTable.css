@@ -84,7 +84,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-width: 148px;
 }
 
 .ticker {
@@ -96,9 +95,6 @@
 .name {
   color: var(--text-dim);
   font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .price {
