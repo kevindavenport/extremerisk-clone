@@ -176,7 +176,12 @@ export default function RiskTable({ assets }) {
               <VarCell value={a.es_ewma} />
               <td className="num alpha-cell">{a.tail_index?.toFixed(2)}</td>
               <td className="left gauge-cell">
-                <RiskBar level={a.risk_level} />
+                <RiskBar
+                  level={a.risk_level}
+                  trend={a.var_trend}
+                  exceptionRate={a.exception_rate}
+                  exceptionCount={a.exception_count}
+                />
               </td>
               <td className="num consensus-cell">{a.mean_var?.toFixed(2)}</td>
               <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} />

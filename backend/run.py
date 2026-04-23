@@ -3,7 +3,7 @@ import os
 import sys
 from datetime import datetime, timezone
 
-from fetch_data import NAMES, TICKERS, compute_log_returns, fetch_prices, fetch_sp500_history
+from fetch_data import NAMES, TICKERS, compute_log_returns, fetch_prices, fetch_sp500_history, fetch_vix_history
 from risk_engine import compute_asset_risk, compute_sp500_history, compute_rolling_correlation, CORR_TICKERS
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "data", "risk_output.json")
@@ -36,8 +36,10 @@ def main():
 
     print("Fetching S&P 500 full history (^GSPC)...")
     sp500_returns, sp500_prices = fetch_sp500_history()
+    print("Fetching VIX history...")
+    vix = fetch_vix_history()
     print("  Computing yearly risk history...")
-    sp500_history = compute_sp500_history(sp500_returns, sp500_prices)
+    sp500_history = compute_sp500_history(sp500_returns, sp500_prices, vix=vix)
 
     print("Computing rolling cross-asset correlation...")
     # Fetch a longer history for the correlation chart (20y) so GFC/COVID are both visible.

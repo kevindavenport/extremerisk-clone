@@ -140,7 +140,7 @@ def compute_daily_ewma_var(returns: pd.Series, p: float = P, lam: float = 0.94, 
     return pd.Series(results, index=returns.index)
 
 
-def compute_sp500_history(returns: pd.Series, prices: pd.Series) -> list[dict]:
+def compute_sp500_history(returns: pd.Series, prices: pd.Series, vix: pd.Series = None) -> list[dict]:
     """Per-year min/max EWMA VaR and annual return for the S&P 500 historical chart."""
     daily_var = compute_daily_ewma_var(returns)
     daily_var = daily_var.dropna()
@@ -148,17 +148,23 @@ def compute_sp500_history(returns: pd.Series, prices: pd.Series) -> list[dict]:
     # Annual return: last price of year / first price of year - 1
     annual_ret = prices.resample("YE").last().pct_change() * 100
 
+    # Annual average VIX per year
+    vix_annual = {}
+    if vix is not None:
+        for year, group in vix.groupby(vix.index.year):
+            vix_annual[year] = round(float(group.mean()), 2)
+
     rows = []
     for year, group in daily_var.groupby(daily_var.index.year):
         if len(group) < 20:
             continue
-        yr_str = str(year)
         ret = float(annual_ret[annual_ret.index.year == year].iloc[0]) if year in annual_ret.index.year else None
         rows.append({
             "year": year,
             "min_var": round(float(group.min()), 2),
             "max_var": round(float(group.max()), 2),
             "annual_return_pct": round(ret, 2) if ret is not None else None,
+            "vix_avg": vix_annual.get(year),
         })
     return rows
 
@@ -192,6 +198,40 @@ def compute_rolling_correlation(returns: pd.DataFrame, window: int = 60, sample_
     return results
 
 
+def compute_var_trend(daily_var: pd.Series, days: int = 5) -> str:
+    """Direction of EWMA VaR over the last `days` trading days."""
+    series = daily_var.dropna()
+    if len(series) < days + 1:
+        return "flat"
+    current = series.iloc[-1]
+    past = series.iloc[-(days + 1)]
+    if past == 0:
+        return "flat"
+    change = (current - past) / past
+    if change > 0.05:
+        return "up"
+    elif change < -0.05:
+        return "down"
+    return "flat"
+
+
+def compute_var_exceptions(returns: pd.Series, daily_var: pd.Series, lookback: int = 504) -> dict:
+    """
+    Count days in the last `lookback` trading days where actual loss exceeded EWMA VaR.
+    Expected rate at 1% confidence: ~1% (~5 per year, ~10 over 2 years).
+    """
+    series = daily_var.dropna()
+    recent_var = series.iloc[-lookback:]
+    recent_ret = returns.reindex(recent_var.index)
+    df = pd.DataFrame({"var": recent_var, "ret": recent_ret}).dropna()
+    # Actual loss in dollar terms on $100 portfolio
+    actual_loss = -df["ret"] * 100
+    exceptions = int((actual_loss > df["var"]).sum())
+    total = len(df)
+    rate = round(exceptions / total * 100, 2) if total > 0 else 0.0
+    return {"exception_count": exceptions, "exception_rate": rate}
+
+
 def compute_asset_risk(ticker: str, returns: pd.Series, prices: pd.Series) -> dict:
     if len(returns) < WINDOW:
         window_rets = returns.values
@@ -208,6 +248,11 @@ def compute_asset_risk(ticker: str, returns: pd.Series, prices: pd.Series) -> di
     mean_var = round(float(np.mean([var_hs, var_ewma, var_garch, var_tgarch, var_evt])), 4)
 
     risk_level = compute_risk_level(returns)
+
+    # Compute daily EWMA VaR series once — reused for trend and exceptions
+    daily_var_series = compute_daily_ewma_var(returns)
+    trend = compute_var_trend(daily_var_series)
+    exc = compute_var_exceptions(returns, daily_var_series)
 
     last_price = float(prices.iloc[-1])
     # Use second-to-last return when the last row is a forward-fill artifact (yfinance
@@ -234,4 +279,7 @@ def compute_asset_risk(ticker: str, returns: pd.Series, prices: pd.Series) -> di
         "tail_index": alpha,
         "mean_var": mean_var,
         "risk_level": round(risk_level, 4),
+        "var_trend": trend,
+        "exception_count": exc["exception_count"],
+        "exception_rate": exc["exception_rate"],
     }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -85,6 +86,12 @@ const CustomTooltip = ({ active, payload, label }) => {
           <span>{d.annual_return_pct > 0 ? "+" : ""}{d.annual_return_pct?.toFixed(1)}%</span>
         </div>
       )}
+      {d?.vix_avg != null && (
+        <div className="tt-row">
+          <span style={{ color: "#f59e0b" }}>Avg VIX</span>
+          <span>{d.vix_avg?.toFixed(1)}</span>
+        </div>
+      )}
     </div>
   );
 };
@@ -162,14 +169,26 @@ export default function HistoricalChart({ data }) {
             />
 
             <YAxis
+              yAxisId="left"
               tick={{ fill: "#8896aa", fontSize: 11, fontFamily: "JetBrains Mono, monospace" }}
               tickLine={false}
               axisLine={false}
               tickFormatter={tickFormatter}
               width={36}
             />
+            <YAxis
+              yAxisId="vix"
+              orientation="right"
+              domain={[0, 90]}
+              tick={{ fill: "#f59e0b", fontSize: 10, fontFamily: "JetBrains Mono, monospace" }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => v === 0 ? "" : `${v}`}
+              width={28}
+              label={{ value: "VIX", angle: 90, position: "insideRight", fill: "#f59e0b", fontSize: 10, fontFamily: "JetBrains Mono, monospace", dx: 12 }}
+            />
 
-            <ReferenceLine y={0} stroke="#1e3048" strokeWidth={1} />
+            <ReferenceLine y={0} yAxisId="left" stroke="#1e3048" strokeWidth={1} />
 
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
 
@@ -181,6 +200,7 @@ export default function HistoricalChart({ data }) {
                   "Min daily risk": "Lowest EWMA VaR recorded that year — the calmest day's risk estimate.",
                   "Max daily risk": "Highest EWMA VaR recorded that year — the most stressed day's risk estimate.",
                   "Loss for year": "Total annual return when negative. Only drawn for down years.",
+                  "Avg VIX": "Annual average VIX (CBOE Volatility Index) — the market's forward-looking fear gauge. Right axis. Spikes signal stress being priced into options markets.",
                 };
                 return (
                   <span
@@ -197,14 +217,16 @@ export default function HistoricalChart({ data }) {
               <ReferenceLine
                 key={e.year}
                 x={e.year}
+                yAxisId="left"
                 stroke="transparent"
                 label={<EventLabel label={e.label} row={e.row} />}
               />
             ))}
 
-            <Bar dataKey="min_var" name="Min daily risk" fill="#4ade80" opacity={0.85} maxBarSize={10} isAnimationActive={false} />
-            <Bar dataKey="max_var" name="Max daily risk" fill="#60a5fa" opacity={0.75} maxBarSize={10} isAnimationActive={false} />
-            <Bar dataKey="loss"    name="Loss for year"  fill="#e53e3e" opacity={0.9}  maxBarSize={10} isAnimationActive={false} />
+            <Bar yAxisId="left" dataKey="min_var" name="Min daily risk" fill="#4ade80" opacity={0.85} maxBarSize={10} isAnimationActive={false} />
+            <Bar yAxisId="left" dataKey="max_var" name="Max daily risk" fill="#60a5fa" opacity={0.75} maxBarSize={10} isAnimationActive={false} />
+            <Bar yAxisId="left" dataKey="loss"    name="Loss for year"  fill="#e53e3e" opacity={0.9}  maxBarSize={10} isAnimationActive={false} />
+            <Line yAxisId="vix" type="monotone" dataKey="vix_avg" name="Avg VIX" stroke="#f59e0b" strokeWidth={1.5} dot={false} opacity={0.8} isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

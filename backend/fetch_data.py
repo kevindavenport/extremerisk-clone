@@ -53,6 +53,17 @@ def compute_log_returns(prices: pd.DataFrame) -> pd.DataFrame:
 
 # TODO: Explore not going back as far given what we want to visualize (70s-80s)
 
+def fetch_vix_history() -> pd.Series:
+    """Fetch VIX index history for overlay on the S&P 500 chart."""
+    raw = yf.download("^VIX", period="max", auto_adjust=True,
+                      progress=False, threads=False)
+    if isinstance(raw.columns, pd.MultiIndex):
+        prices = raw["Close"].iloc[:, 0]
+    else:
+        prices = raw["Close"]
+    return prices.ffill().dropna()
+
+
 def fetch_sp500_history() -> tuple[pd.Series, pd.Series]:
     """Fetch maximum available S&P 500 history (^GSPC, back to 1927)."""
     raw = yf.download("^GSPC", period="max", auto_adjust=True,
