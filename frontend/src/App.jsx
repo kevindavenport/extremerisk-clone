@@ -40,7 +40,7 @@ export default function App() {
       <header className="header">
         <div className="header-left">
           <span className="logo">RISK<span className="logo-accent">LENS</span></span>
-          <span className="subtitle">Market Risk Dashboard · 1% VaR / ES · 1000-day window</span>
+          <span className="subtitle">Quantitative tail risk · VaR · ES · Extreme Value Theory · Daily</span>
         </div>
         {data && (
           <div className="generated-at">
