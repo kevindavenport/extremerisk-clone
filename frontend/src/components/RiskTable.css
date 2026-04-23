@@ -24,6 +24,35 @@
   color: var(--text-dim);
 }
 
+.risk-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.risk-table th.sortable:hover {
+  color: var(--text-bright);
+}
+
+.th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sort-icon {
+  font-size: 10px;
+  font-style: normal;
+}
+
+.sort-icon.inactive {
+  opacity: 0.25;
+}
+
+.sort-icon.active {
+  color: var(--accent);
+  opacity: 1;
+}
+
 .risk-table th.left { text-align: left; }
 .risk-table th.num  { text-align: right; }
 .risk-table th.center { text-align: center; }
