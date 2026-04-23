@@ -33,10 +33,3 @@
   line-height: 1;
 }
 
-.risk-bar-exc {
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.85;
-  min-width: 34px;
-  text-align: right;
-}

@@ -8,17 +8,26 @@ export default function RiskBar({ level, trend, exceptionRate, exceptionCount })
   const trendIcon  = trend === "up" ? "↑" : trend === "down" ? "↓" : null;
   const trendColor = trend === "up" ? "var(--red)" : "var(--green)";
 
-  // Exception rate coloring: green ≤1.5%, yellow ≤3%, red >3%
-  const excColor = exceptionRate > 3 ? "var(--red)"
-    : exceptionRate > 1.5 ? "var(--yellow)"
-    : "var(--green)";
+  const trendLabel = trend === "up"
+    ? "VaR rising over last 5 days — risk is building"
+    : trend === "down"
+    ? "VaR falling over last 5 days — risk is easing"
+    : null;
+
+  const excLabel = exceptionRate != null
+    ? `Model exceptions (2y): ${exceptionCount} days (${exceptionRate}% — expected ~1%). ${
+        exceptionRate > 3
+          ? "EWMA is underestimating tail risk for this asset."
+          : exceptionRate > 1.5
+          ? "Slight underestimation — consider EVT estimates."
+          : "Model well-calibrated."
+      }`
+    : null;
 
   const title = [
     `Risk percentile: ${pct}% vs trailing 2-year history`,
-    trend !== "flat" ? `5-day trend: ${trend}` : null,
-    exceptionRate != null
-      ? `VaR exceptions (2y): ${exceptionCount} days (${exceptionRate}% — expected ~1%)`
-      : null,
+    trendLabel,
+    excLabel,
   ].filter(Boolean).join(" · ");
 
   return (
@@ -32,11 +41,6 @@ export default function RiskBar({ level, trend, exceptionRate, exceptionCount })
       <span className="risk-bar-label" style={{ color }}>{pct}%</span>
       {trendIcon && (
         <span className="risk-bar-trend" style={{ color: trendColor }}>{trendIcon}</span>
-      )}
-      {exceptionRate != null && (
-        <span className="risk-bar-exc" style={{ color: excColor }}>
-          {exceptionRate}%
-        </span>
       )}
     </div>
   );
