@@ -148,21 +148,22 @@ export default function RiskTable({ assets }) {
             <Th col="name"  label="Asset"   className="left sticky-col" {...sp} />
             <Th col="price" label="Price"   className="num" {...sp} />
             <ThWithTip col="ret"       label="1d Ret%"    tip={TIPS.ret}      className="num" {...sp} />
+            <ThToggle expanded={modelsExpanded} onToggle={() => setModelsExpanded(e => !e)} colSpan={modelsExpanded ? 5 : 1} />
             <ThWithTip col="esEwma"    label="ES EWMA"    tip={TIPS.esEwma}   className="num" {...sp} />
             <ThWithTip col="consensus" label="Consensus"  tip={TIPS.consensus} className="num" {...sp} />
             <ThWithTip col="range"     label="Range"      tip={TIPS.range}    className="num" {...sp} />
             <ThWithTip col="alpha"     label="α"          tip={TIPS.alpha}    className="num" {...sp} />
             <ThWithTip col="risk"      label="Risk"       tip={TIPS.risk}     className="left" {...sp} />
-            <ThToggle expanded={modelsExpanded} onToggle={() => setModelsExpanded(e => !e)} colSpan={modelsExpanded ? 5 : 1} />
           </tr>
           {modelsExpanded && (
             <tr className="model-subheader">
-              <th className="sticky-col" colSpan={8} />
+              <th className="sticky-col" colSpan={3} />
               <ThWithTip col="varHs"     label="VaR HS"     tip={TIPS.varHs}     className="num" {...sp} />
               <ThWithTip col="varEwma"   label="VaR EWMA"   tip={TIPS.varEwma}   className="num" {...sp} />
               <ThWithTip col="varGarch"  label="VaR GARCH"  tip={TIPS.varGarch}  className="num" {...sp} />
               <ThWithTip col="varTgarch" label="VaR tGARCH" tip={TIPS.varTgarch} className="num" {...sp} />
               <ThWithTip col="varEvt"    label="VaR EVT"    tip={TIPS.varEvt}    className="num" {...sp} />
+              <th colSpan={4} />
             </tr>
           )}
         </thead>
@@ -175,13 +176,6 @@ export default function RiskTable({ assets }) {
               </td>
               <td className="num price">${a.last_price.toLocaleString()}</td>
               <ReturnCell value={a.last_return_pct} />
-              <VarCell value={a.es_ewma} />
-              <td className="num consensus-cell">{a.mean_var?.toFixed(2)}</td>
-              <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} />
-              <td className="num alpha-cell">{a.tail_index?.toFixed(2)}</td>
-              <td className="left gauge-cell">
-                <RiskBar level={a.risk_level} />
-              </td>
               {modelsExpanded && (
                 <>
                   <VarCell value={a.var_hs} />
@@ -191,6 +185,14 @@ export default function RiskTable({ assets }) {
                   <VarCell value={a.var_evt} />
                 </>
               )}
+              {!modelsExpanded && <td />}
+              <VarCell value={a.es_ewma} />
+              <td className="num consensus-cell">{a.mean_var?.toFixed(2)}</td>
+              <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} />
+              <td className="num alpha-cell">{a.tail_index?.toFixed(2)}</td>
+              <td className="left gauge-cell">
+                <RiskBar level={a.risk_level} />
+              </td>
             </tr>
           ))}
         </tbody>
