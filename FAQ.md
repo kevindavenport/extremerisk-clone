@@ -88,3 +88,8 @@ They span fundamentally different approaches: non-parametric (HS), parametric wi
 
 **Why does the correlation chart only go back to 2007 and not further?**
 The shortest-history ticker in the correlation basket is HYG (launched April 2007). We exclude CGUS (launched 2022) and BTC-USD (launched 2014) from the correlation calculation specifically to preserve the longer history — otherwise the series would start in 2022 and miss the GFC entirely.
+
+**Doesn't the high correlation between SPY and QQQ distort the average — double counting equity exposure?**
+It influences the absolute level of the average but not the signal. SPY and QQQ are typically 0.95+ correlated, so that pair is always pulling the average up. But since it's always there, its contribution to the level is constant — what changes the average over time is when normally uncorrelated pairs start moving together. The most informative pairs in the basket are the cross-asset ones: SPY/GLD, TLT/SPY, HYG/TLT. In normal markets those correlations are low or negative. When they spike — as in 2022 when stocks and bonds both sold off — that's what drives the chart up. The SPY/QQQ pair being perpetually high is almost irrelevant to the regime signal.
+
+A more rigorous version would use a weighted average that downweights highly collinear pairs — for example weighting each pair inversely by its long-run average correlation, or using PCA to weight by independent variance explained. That would lower the baseline level and give more signal weight to cross-asset relationships. A reasonable version 2 enhancement if the methodology gets scrutinized closely.
