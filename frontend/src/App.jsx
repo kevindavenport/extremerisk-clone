@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import RiskTable from "./components/RiskTable.jsx";
 import HistoricalChart from "./components/HistoricalChart.jsx";
 import CorrelationChart from "./components/CorrelationChart.jsx";
+import ScenarioPanel from "./components/ScenarioPanel.jsx";
 import "./App.css";
+
+const NAV_LINKS = [
+  { id: "risk-snapshot",   label: "Risk Snapshot" },
+  { id: "sp500-history",   label: "S&P 500 History" },
+  { id: "correlation",     label: "Correlation" },
+  { id: "stress-tests",    label: "Stress Tests" },
+];
 
 export default function App() {
   const [data, setData] = useState(null);
@@ -35,12 +43,16 @@ export default function App() {
     }) + " UTC";
   };
 
+  const scrollTo = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="app">
       <header className="header">
         <div className="header-left">
           <span className="logo">RISK<span className="logo-accent">LENS</span></span>
-          <span className="subtitle">Quantitative tail risk · VaR · ES · Extreme Value Theory · Daily</span>
+          <span className="subtitle">Daily tail risk monitoring across assets, models, and market regimes</span>
         </div>
         {data && (
           <div className="generated-at">
@@ -49,6 +61,16 @@ export default function App() {
           </div>
         )}
       </header>
+
+      {data && (
+        <nav className="page-nav">
+          {NAV_LINKS.map(({ id, label }) => (
+            <button key={id} className="nav-btn" onClick={() => scrollTo(id)}>
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
 
       <div className="legend">
         <span className="legend-item"><span className="dot green" />Low risk (&lt;2.5)</span>
@@ -70,7 +92,7 @@ export default function App() {
           </div>
         )}
         {data && (
-          <section className="section">
+          <section id="risk-snapshot" className="section">
             <div className="section-header">
               <span className="section-title">Current Risk Snapshot</span>
               <span className="section-desc">How risky is each asset today, relative to its own two-year history? Rows default-sorted by risk level. VaR = the minimum expected loss on the worst 1% of trading days, on a $100 position. Five models are shown because their disagreement is itself a signal — a wide spread means the asset has tail behavior that normal assumptions miss.</span>
@@ -79,7 +101,7 @@ export default function App() {
           </section>
         )}
         {data?.sp500_history && (
-          <section className="section">
+          <section id="sp500-history" className="section">
             <div className="section-header">
               <span className="section-title">S&amp;P 500 Historical Risk</span>
               <span className="section-desc">How has U.S. equity market stress evolved year by year? Each bar shows the range of modeled daily loss estimates for that year.</span>
@@ -88,12 +110,21 @@ export default function App() {
           </section>
         )}
         {data?.correlation_history && (
-          <section className="section">
+          <section id="correlation" className="section">
             <div className="section-header">
               <span className="section-title">Cross-Asset Correlation</span>
               <span className="section-desc">Are markets moving in lockstep? When assets rise together, diversification breaks down and portfolio risk is higher than any single holding suggests.</span>
             </div>
             <CorrelationChart data={data.correlation_history} />
+          </section>
+        )}
+        {data?.scenarios && (
+          <section id="stress-tests" className="section">
+            <div className="section-header">
+              <span className="section-title">Historical Stress Tests</span>
+              <span className="section-desc">How would the hypothetical portfolio have performed during major market crises? Each card shows total P&amp;L and which holdings hurt — or helped — the most.</span>
+            </div>
+            <ScenarioPanel scenarios={data.scenarios} />
           </section>
         )}
       </main>

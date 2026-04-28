@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from fetch_data import NAMES, TICKERS, compute_log_returns, fetch_prices, fetch_sp500_history, fetch_vix_history
-from risk_engine import compute_asset_risk, compute_sp500_history, compute_rolling_correlation, CORR_TICKERS
+from risk_engine import compute_asset_risk, compute_sp500_history, compute_rolling_correlation, compute_scenarios, compute_hypothetical_scenarios, CORR_TICKERS
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "data", "risk_output.json")
 
@@ -98,14 +98,24 @@ def main():
     print("  Computing yearly risk history...")
     sp500_history = compute_sp500_history(sp500_returns, sp500_prices, vix=vix)
 
-    print("Computing rolling cross-asset correlation...")
-    # Fetch a longer history for the correlation chart (20y) so GFC/COVID are both visible.
-    # Uses only CORR_TICKERS so late-starting assets (CGUS) don't truncate the series.
-    print("  Fetching 20y price history for correlation tickers...")
-    corr_prices_long = fetch_prices(period="20y")
-    corr_cols = [c for c in CORR_TICKERS if c in corr_prices_long.columns]
-    corr_returns = compute_log_returns(corr_prices_long[corr_cols])
+    print("Computing rolling cross-asset correlation & scenarios...")
+    # Fetch a longer history (20y) so GFC/COVID are both visible.
+    print("  Fetching 20y price history...")
+    prices_long = fetch_prices(period="20y")
+
+    # Correlation — CORR_TICKERS only so late-starting assets don't truncate the series
+    corr_cols = [c for c in CORR_TICKERS if c in prices_long.columns]
+    corr_returns = compute_log_returns(prices_long[corr_cols])
     corr_history = compute_rolling_correlation(corr_returns)
+
+    # Scenarios — use full 20y matrix (CGUS/BTC will be absent for pre-2014/2022 events)
+    print("  Computing historical scenarios...")
+    hist_scenarios  = compute_scenarios(prices_long, PORTFOLIO_WEIGHTS)
+    for s in hist_scenarios:
+        s["type"] = "historical"
+
+    hypo_scenarios  = compute_hypothetical_scenarios(PORTFOLIO_WEIGHTS)
+    scenarios       = hist_scenarios + hypo_scenarios
 
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -113,6 +123,7 @@ def main():
         "portfolio_weights": PORTFOLIO_WEIGHTS,
         "sp500_history": sp500_history,
         "correlation_history": corr_history,
+        "scenarios": scenarios,
     }
 
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)

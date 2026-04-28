@@ -283,3 +283,226 @@ def compute_asset_risk(ticker: str, returns: pd.Series, prices: pd.Series) -> di
         "exception_count": exc["exception_count"],
         "exception_rate": exc["exception_rate"],
     }
+
+
+# ---------------------------------------------------------------------------
+# Historical scenario analysis
+# ---------------------------------------------------------------------------
+
+SCENARIOS = [
+    {
+        "id": "gfc",
+        "name": "Global Financial Crisis",
+        "desc": "Lehman Brothers collapse triggers global credit freeze",
+        "start": "2008-09-15",
+        "end": "2009-03-09",
+    },
+    {
+        "id": "covid",
+        "name": "COVID Crash",
+        "desc": "Pandemic panic selling, fastest 30% drop in S&P history",
+        "start": "2020-02-20",
+        "end": "2020-03-23",
+    },
+    {
+        "id": "rate_shock_2022",
+        "name": "Fed Rate Shock 2022",
+        "desc": "Most aggressive hiking cycle in 40 years breaks stocks AND bonds",
+        "start": "2022-01-03",
+        "end": "2022-10-12",
+    },
+    {
+        "id": "russia_ukraine",
+        "name": "Russia–Ukraine Invasion",
+        "desc": "Full-scale invasion triggers energy shock and risk-off selloff",
+        "start": "2022-02-24",
+        "end": "2022-03-14",
+    },
+    {
+        "id": "q4_2018",
+        "name": "Q4 2018 Sell-off",
+        "desc": "Fed tightening fears and trade war escalation hit markets",
+        "start": "2018-10-03",
+        "end": "2018-12-24",
+    },
+]
+
+
+# ---------------------------------------------------------------------------
+# Hypothetical / forward-looking scenarios
+# Shocks are analyst-estimated % moves per ETF under each scenario.
+# These are illustrative assumptions, not forecasts.
+# ---------------------------------------------------------------------------
+
+HYPOTHETICAL_SCENARIOS = [
+    {
+        "id": "taiwan_invasion",
+        "name": "Taiwan Invasion",
+        "desc": "PLA military action triggers semiconductor supply shock and broad Asia risk-off",
+        "shocks": {
+            "SPY":     -0.15,
+            "QQQ":     -0.22,   # TSMC/NVDA/ASML heavy in Nasdaq
+            "GLD":     +0.14,   # flight to safety
+            "TLT":     +0.09,   # flight to safety, rate cut expectations
+            "EEM":     -0.22,   # EM Asia exposure
+            "BTC-USD": -0.28,   # crypto risk-off
+            "IWM":     -0.14,
+            "HYG":     -0.09,   # credit spread widening
+            "LQD":     +0.02,
+            "XLF":     -0.11,
+            "VNQ":     -0.10,
+            "CGUS":    -0.15,
+        },
+    },
+    {
+        "id": "iran_conflict",
+        "name": "Iran Conflict / Oil Shock",
+        "desc": "Strait of Hormuz disruption drives oil toward $150, stagflation fears spike",
+        "shocks": {
+            "SPY":     -0.09,
+            "QQQ":     -0.08,
+            "GLD":     +0.13,   # oil/safe haven
+            "TLT":     +0.04,
+            "EEM":     -0.13,
+            "BTC-USD": -0.18,
+            "IWM":     -0.09,
+            "HYG":     -0.07,
+            "LQD":     +0.01,
+            "XLF":     -0.08,
+            "VNQ":     -0.07,
+            "CGUS":    -0.09,
+        },
+    },
+    {
+        "id": "us_recession",
+        "name": "U.S. Recession",
+        "desc": "GDP contraction triggers Fed pivot, credit spreads widen, earnings fall",
+        "shocks": {
+            "SPY":     -0.28,
+            "QQQ":     -0.32,
+            "GLD":     +0.08,
+            "TLT":     +0.18,   # aggressive rate cuts
+            "EEM":     -0.22,
+            "BTC-USD": -0.45,
+            "IWM":     -0.32,   # small caps hit hardest
+            "HYG":     -0.16,   # high yield blowout
+            "LQD":     +0.04,
+            "XLF":     -0.30,   # financials crater
+            "VNQ":     -0.22,
+            "CGUS":    -0.28,
+        },
+    },
+    {
+        "id": "ai_bubble_burst",
+        "name": "AI Bubble Burst",
+        "desc": "Demand disappointment or capex reality check causes mega-cap tech repricing",
+        "shocks": {
+            "SPY":     -0.18,
+            "QQQ":     -0.35,   # highest concentration in AI names
+            "GLD":     +0.05,
+            "TLT":     +0.08,
+            "EEM":     -0.10,
+            "BTC-USD": -0.30,   # correlated risk-off
+            "IWM":     -0.12,
+            "HYG":     -0.08,
+            "LQD":     +0.02,
+            "XLF":     -0.14,
+            "VNQ":     -0.08,
+            "CGUS":    -0.18,
+        },
+    },
+]
+
+
+def compute_hypothetical_scenarios(weights: dict) -> list[dict]:
+    """
+    Apply analyst-estimated shock vectors to portfolio weights.
+    No historical price data required — pure assumption-based stress test.
+    """
+    results = []
+    for s in HYPOTHETICAL_SCENARIOS:
+        shocks  = s["shocks"]
+        avail   = [t for t in weights if t in shocks]
+        raw_w   = {t: weights[t] for t in avail}
+        total_w = sum(raw_w.values())
+        norm_w  = {t: w / total_w for t, w in raw_w.items()}
+
+        port_return   = sum(shocks[t] * norm_w[t] for t in avail)
+        contributions = {t: round(shocks[t] * norm_w[t] * 100, 2) for t in avail}
+
+        results.append({
+            "id":            s["id"],
+            "name":          s["name"],
+            "desc":          s["desc"],
+            "type":          "hypothetical",
+            "portfolio_pnl": round(port_return * 100, 2),
+            "coverage_pct":  round(total_w * 100, 1),
+            "asset_returns": {t: round(shocks[t] * 100, 1) for t in avail},
+            "contributions": contributions,
+        })
+    return results
+
+
+def compute_scenarios(prices: pd.DataFrame, weights: dict) -> list[dict]:
+    """
+    For each historical scenario, compute portfolio and per-asset total returns
+    over the scenario date range. Missing tickers (e.g. BTC pre-2014, CGUS pre-2022)
+    are excluded and weights re-normalized so the portfolio return is still meaningful.
+    """
+    results = []
+
+    for s in SCENARIOS:
+        start = pd.Timestamp(s["start"])
+        end   = pd.Timestamp(s["end"])
+
+        mask   = (prices.index >= start) & (prices.index <= end)
+        window = prices[mask].copy()
+
+        if len(window) < 2:
+            continue
+
+        # Only include tickers that have full non-NaN data across the window
+        avail = [
+            t for t in weights
+            if t in window.columns and window[t].notna().sum() >= 2
+        ]
+        if not avail:
+            continue
+
+        # Total return per ticker: (last / first) - 1
+        asset_returns = {}
+        for t in avail:
+            series = window[t].dropna()
+            if len(series) >= 2:
+                asset_returns[t] = float(series.iloc[-1] / series.iloc[0] - 1)
+
+        if not asset_returns:
+            continue
+
+        # Re-normalize weights to available tickers
+        raw_w   = {t: weights[t] for t in asset_returns}
+        total_w = sum(raw_w.values())
+        norm_w  = {t: w / total_w for t, w in raw_w.items()}
+
+        # Portfolio return (normalized weights)
+        port_return = sum(asset_returns[t] * norm_w[t] for t in asset_returns)
+
+        # Per-asset contribution = return × normalized weight
+        contributions = {
+            t: round(asset_returns[t] * norm_w[t] * 100, 2)
+            for t in asset_returns
+        }
+
+        results.append({
+            "id":               s["id"],
+            "name":             s["name"],
+            "desc":             s["desc"],
+            "start":            s["start"],
+            "end":              s["end"],
+            "portfolio_pnl":    round(port_return * 100, 2),
+            "coverage_pct":     round(total_w * 100, 1),
+            "asset_returns":    {t: round(v * 100, 2) for t, v in asset_returns.items()},
+            "contributions":    contributions,
+        })
+
+    return results

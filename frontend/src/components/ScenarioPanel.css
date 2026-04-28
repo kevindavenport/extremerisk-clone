@@ -1,0 +1,208 @@
+.scenario-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.scenario-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+}
+
+.scenario-group-label.hypo-label {
+  color: #b07d2a;
+  border-left-color: #b07d2a;
+}
+
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ── Card base ── */
+.scenario-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Historical: normal */
+.scenario-card.historical {
+  border-top: 2px solid var(--border);
+}
+
+/* Hypothetical: amber tint */
+.scenario-card.hypo {
+  background: #16120a;
+  border: 1px solid #3a2e10;
+  border-top: 2px solid #b07d2a;
+}
+
+/* ── Card header ── */
+.scenario-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.scenario-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.scenario-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: 0.02em;
+}
+
+.scenario-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge-hist {
+  background: var(--bg3);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.badge-hypo {
+  background: #2a1f00;
+  color: #d4941a;
+  border: 1px solid #4a3510;
+}
+
+.scenario-dates {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
+}
+
+.scenario-card.hypo .scenario-dates {
+  color: #7a6030;
+}
+
+.scenario-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+/* ── Big P&L number ── */
+.scenario-pnl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0 8px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.scenario-card.hypo .scenario-pnl {
+  border-top-color: #3a2e10;
+  border-bottom-color: #3a2e10;
+}
+
+.scenario-pnl.loss { color: var(--red); }
+.scenario-pnl.gain { color: var(--green); }
+
+.scenario-pnl-label {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ── Contribution bars ── */
+.contrib-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.contrib-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contrib-ticker {
+  font-size: 10px;
+  color: var(--text-dim);
+  width: 52px;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+}
+
+.contrib-track {
+  flex: 1;
+  height: 5px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.scenario-card.hypo .contrib-track {
+  background: #1e1808;
+}
+
+.contrib-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.contrib-fill.loss { background: var(--red);   opacity: 0.8; }
+.contrib-fill.gain { background: var(--green); opacity: 0.8; }
+
+.contrib-ret {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  width: 38px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.contrib-ret.loss { color: var(--red); }
+.contrib-ret.gain { color: var(--green); }
+
+/* ── Footer note ── */
+.scenario-coverage {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-style: italic;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  line-height: 1.4;
+}
+
+.scenario-card.hypo .scenario-coverage {
+  color: #7a6030;
+  border-top-color: #3a2e10;
+}
