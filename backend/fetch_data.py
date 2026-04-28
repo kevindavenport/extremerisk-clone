@@ -24,10 +24,48 @@ NAMES = {
     "CGUS":   "Capital Group Core Equity ETF",
 }
 
+# Underlying holdings of Vanguard Target Retirement 2055 (VFFVX),
+# mapped to ETF equivalents for transparent daily NAV access.
+TDF_2055_TICKERS = ["VTI", "VXUS", "BND", "BNDX"]
 
-def fetch_prices(period: str = "10y") -> pd.DataFrame:
+TDF_2055_NAMES = {
+    "VTI":  "Vanguard Total Stock Market ETF",
+    "VXUS": "Vanguard Total International Stock ETF",
+    "BND":  "Vanguard Total Bond Market ETF",
+    "BNDX": "Vanguard Total International Bond ETF",
+}
+
+# Underlying holdings of American Funds Target Date Retirement 2055 (AAFTX).
+# Capital Group TDFs hold actively-managed American Funds mutual funds, not
+# ETFs — so the layered structure is materially different from Vanguard.
+CG_2055_TICKERS = [
+    "AGTHX", "AIVSX", "ANCFX", "AWSHX", "AMRMX",
+    "ANWPX", "AEPGX", "CWGIX", "NEWFX", "SMCWX",
+    "ABNDX", "AMUSX",
+]
+
+CG_2055_NAMES = {
+    "AGTHX": "Growth Fund of America",
+    "AIVSX": "Investment Company of America",
+    "ANCFX": "Fundamental Investors",
+    "AWSHX": "Washington Mutual Investors",
+    "AMRMX": "American Mutual Fund",
+    "ANWPX": "New Perspective Fund",
+    "AEPGX": "EuroPacific Growth Fund",
+    "CWGIX": "Capital World Growth & Income",
+    "NEWFX": "New World Fund",
+    "SMCWX": "SMALLCAP World Fund",
+    "ABNDX": "Bond Fund of America",
+    "AMUSX": "U.S. Government Securities Fund",
+}
+
+
+def fetch_prices(period: str = "10y", tickers: list = None) -> pd.DataFrame:
+    if tickers is None:
+        tickers = TICKERS
+
     frames = {}
-    for ticker in TICKERS:
+    for ticker in tickers:
         try:
             raw = yf.download(ticker, period=period, auto_adjust=True,
                               progress=False, threads=False)
@@ -40,7 +78,7 @@ def fetch_prices(period: str = "10y") -> pd.DataFrame:
             print(f"  WARNING: failed to download {ticker}: {e}")
 
     prices = pd.DataFrame(frames)
-    prices = prices.reindex(columns=TICKERS)
+    prices = prices.reindex(columns=tickers)
 
     # Forward-fill gaps (handles BTC weekend data and other missing values)
     prices = prices.ffill()

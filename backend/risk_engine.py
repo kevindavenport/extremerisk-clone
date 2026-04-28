@@ -352,6 +352,24 @@ HYPOTHETICAL_SCENARIOS = [
             "XLF":     -0.11,
             "VNQ":     -0.10,
             "CGUS":    -0.15,
+            # TDF underlying holdings
+            "VTI":     -0.15,   # US total market
+            "VXUS":    -0.20,   # intl total — heavier Asia weight
+            "BND":     +0.04,   # US bonds — modest flight to safety
+            "BNDX":    +0.03,   # intl bonds
+            # Capital Group TDF underlying funds
+            "AGTHX":   -0.22,   # US growth (heavy semis)
+            "AIVSX":   -0.15,   # US large blend
+            "ANCFX":   -0.16,   # US large blend
+            "AWSHX":   -0.10,   # US value (defensive)
+            "AMRMX":   -0.12,   # US dividend (defensive)
+            "ANWPX":   -0.19,   # global (Asia weight)
+            "AEPGX":   -0.16,   # intl developed
+            "CWGIX":   -0.14,   # global income
+            "NEWFX":   -0.22,   # EM (heavy Asia)
+            "SMCWX":   -0.18,   # global small cap
+            "ABNDX":   +0.04,   # US core bonds
+            "AMUSX":   +0.05,   # US Treasuries
         },
     },
     {
@@ -371,6 +389,24 @@ HYPOTHETICAL_SCENARIOS = [
             "XLF":     -0.08,
             "VNQ":     -0.07,
             "CGUS":    -0.09,
+            # TDF underlying holdings
+            "VTI":     -0.09,
+            "VXUS":    -0.11,   # intl exposure to oil shock
+            "BND":     +0.02,
+            "BNDX":    +0.01,
+            # Capital Group TDF underlying funds
+            "AGTHX":   -0.10,
+            "AIVSX":   -0.09,
+            "ANCFX":   -0.09,
+            "AWSHX":   -0.07,
+            "AMRMX":   -0.07,
+            "ANWPX":   -0.10,
+            "AEPGX":   -0.11,
+            "CWGIX":   -0.09,
+            "NEWFX":   -0.13,
+            "SMCWX":   -0.10,
+            "ABNDX":   +0.01,
+            "AMUSX":   +0.03,
         },
     },
     {
@@ -390,6 +426,24 @@ HYPOTHETICAL_SCENARIOS = [
             "XLF":     -0.30,   # financials crater
             "VNQ":     -0.22,
             "CGUS":    -0.28,
+            # TDF underlying holdings
+            "VTI":     -0.28,
+            "VXUS":    -0.24,   # global recession spillover
+            "BND":     +0.08,   # rate cut benefit
+            "BNDX":    +0.05,
+            # Capital Group TDF underlying funds
+            "AGTHX":   -0.32,   # growth-tilted, hardest hit
+            "AIVSX":   -0.28,
+            "ANCFX":   -0.28,
+            "AWSHX":   -0.22,   # defensive value
+            "AMRMX":   -0.22,   # defensive dividend
+            "ANWPX":   -0.25,
+            "AEPGX":   -0.20,
+            "CWGIX":   -0.22,
+            "NEWFX":   -0.25,
+            "SMCWX":   -0.32,   # small caps hit hardest
+            "ABNDX":   +0.06,
+            "AMUSX":   +0.12,   # rate cut benefit
         },
     },
     {
@@ -409,6 +463,24 @@ HYPOTHETICAL_SCENARIOS = [
             "XLF":     -0.14,
             "VNQ":     -0.08,
             "CGUS":    -0.18,
+            # TDF underlying holdings
+            "VTI":     -0.18,   # broad market, includes AI exposure
+            "VXUS":    -0.10,   # less direct AI concentration
+            "BND":     +0.04,
+            "BNDX":    +0.02,
+            # Capital Group TDF underlying funds
+            "AGTHX":   -0.32,   # growth fund — heavy mega-cap AI names
+            "AIVSX":   -0.18,
+            "ANCFX":   -0.18,
+            "AWSHX":   -0.10,   # value, low AI concentration
+            "AMRMX":   -0.10,   # dividend, low AI concentration
+            "ANWPX":   -0.20,   # global growth
+            "AEPGX":   -0.10,
+            "CWGIX":   -0.12,
+            "NEWFX":   -0.12,
+            "SMCWX":   -0.16,
+            "ABNDX":   +0.03,
+            "AMUSX":   +0.06,
         },
     },
 ]

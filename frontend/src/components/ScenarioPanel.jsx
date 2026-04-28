@@ -77,23 +77,11 @@ function ScenarioCard({ s }) {
 export default function ScenarioPanel({ scenarios }) {
   if (!scenarios || scenarios.length === 0) return null;
 
-  const historical    = scenarios.filter((s) => s.type === "historical");
-  const hypothetical  = scenarios.filter((s) => s.type === "hypothetical");
-
   return (
     <div className="scenario-section">
-      {historical.length > 0 && (
-        <>
-          <div className="scenario-group-label">Historical — what actually happened</div>
-          <div className="scenario-grid">{historical.map((s) => <ScenarioCard key={s.id} s={s} />)}</div>
-        </>
-      )}
-      {hypothetical.length > 0 && (
-        <>
-          <div className="scenario-group-label hypo-label">Hypothetical — forward-looking estimates</div>
-          <div className="scenario-grid">{hypothetical.map((s) => <ScenarioCard key={s.id} s={s} />)}</div>
-        </>
-      )}
+      <div className="scenario-grid">
+        {scenarios.map((s) => <ScenarioCard key={s.id} s={s} />)}
+      </div>
     </div>
   );
 }
