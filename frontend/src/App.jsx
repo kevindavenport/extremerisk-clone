@@ -69,12 +69,32 @@ export default function App() {
             <div className="hint">Run <code>python backend/run.py</code> to generate data.</div>
           </div>
         )}
-        {data && <RiskTable assets={data.assets} />}
+        {data && (
+          <section className="section">
+            <div className="section-header">
+              <span className="section-title">Current Risk Snapshot</span>
+              <span className="section-desc">How risky is each asset today, relative to its own two-year history? Rows default-sorted by risk level. VaR = the minimum expected loss on the worst 1% of trading days, on a $100 position. Five models are shown because their disagreement is itself a signal — a wide spread means the asset has tail behavior that normal assumptions miss.</span>
+            </div>
+            <RiskTable assets={data.assets} portfolioWeights={data.portfolio_weights} />
+          </section>
+        )}
         {data?.sp500_history && (
-          <HistoricalChart data={data.sp500_history} />
+          <section className="section">
+            <div className="section-header">
+              <span className="section-title">S&amp;P 500 Historical Risk</span>
+              <span className="section-desc">How has U.S. equity market stress evolved year by year? Each bar shows the range of modeled daily loss estimates for that year.</span>
+            </div>
+            <HistoricalChart data={data.sp500_history} />
+          </section>
         )}
         {data?.correlation_history && (
-          <CorrelationChart data={data.correlation_history} />
+          <section className="section">
+            <div className="section-header">
+              <span className="section-title">Cross-Asset Correlation</span>
+              <span className="section-desc">Are markets moving in lockstep? When assets rise together, diversification breaks down and portfolio risk is higher than any single holding suggests.</span>
+            </div>
+            <CorrelationChart data={data.correlation_history} />
+          </section>
         )}
       </main>
 

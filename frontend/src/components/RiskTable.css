@@ -98,6 +98,13 @@
   font-size: 11px;
 }
 
+.portfolio-weight {
+  color: var(--accent);
+  font-size: 10px;
+  opacity: 0.6;
+  letter-spacing: 0.02em;
+}
+
 .price {
   color: var(--text-bright);
   font-weight: 600;
@@ -171,4 +178,39 @@
 .gauge-cell {
   padding: 4px 14px;
   vertical-align: middle;
+}
+
+/* ── Portfolio summary row ── */
+.portfolio-row {
+  border-top: 2px solid var(--accent);
+  background: #0e1d35;
+}
+
+.portfolio-row:hover {
+  background: #132440;
+}
+
+.portfolio-sticky {
+  background: #0e1d35 !important;
+}
+
+.portfolio-row:hover .portfolio-sticky {
+  background: #132440 !important;
+}
+
+.portfolio-ticker {
+  color: var(--accent) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.portfolio-nav {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-style: italic;
+}
+
+.portfolio-cell {
+  opacity: 0.9;
 }

@@ -70,51 +70,88 @@ function ThWithTip({ col, label, tip, className, sortKey, sortDir, onSort }) {
   );
 }
 
-// Expand/collapse toggle header for the model detail columns
-function ThToggle({ expanded, onToggle, colSpan }) {
-  return (
-    <th
-      className="num model-toggle-th"
-      colSpan={colSpan}
-      onClick={onToggle}
-      title={expanded ? "Hide individual model VaRs" : "Show individual model VaRs"}
-    >
-      <span className="th-inner">
-        {expanded ? "▾ Models" : "▸ Models"}
-      </span>
-    </th>
-  );
-}
-
-function RangeCell({ values }) {
+function RangeCell({ values, className }) {
   const min = Math.min(...values);
   const max = Math.max(...values);
   const spread = max - min;
   const color = spread > 3 ? "var(--red)" : spread > 1.5 ? "var(--yellow)" : "var(--text-dim)";
   return (
-    <td className="num range-cell" style={{ color }}>
+    <td className={`num range-cell ${className ?? ""}`} style={{ color }}>
       {min.toFixed(2)}<span className="range-sep"> – </span>{max.toFixed(2)}
     </td>
   );
 }
 
-function ReturnCell({ value }) {
+function ReturnCell({ value, className }) {
   const color = value > 0 ? "var(--green)" : value < 0 ? "var(--red)" : "var(--text-dim)";
   return (
-    <td className="num" style={{ color }}>
+    <td className={`num ${className ?? ""}`} style={{ color }}>
       {value > 0 ? "+" : ""}{value.toFixed(2)}%
     </td>
   );
 }
 
-function VarCell({ value }) {
+function VarCell({ value, className }) {
   let color = "var(--green)";
   if (value > 5) color = "var(--red)";
   else if (value > 2.5) color = "var(--yellow)";
-  return <td className="num" style={{ color }}>{value.toFixed(2)}</td>;
+  return <td className={`num ${className ?? ""}`} style={{ color }}>{value.toFixed(2)}</td>;
 }
 
-export default function RiskTable({ assets }) {
+function WeightsTooltip({ weights }) {
+  if (!weights) return null;
+  const equity = ["SPY","QQQ","EEM","IWM","XLF","CGUS"];
+  const fi = ["TLT","LQD","HYG"];
+  const real = ["GLD","VNQ"];
+  const crypto = ["BTC-USD"];
+  const groups = [
+    { label: "Equity", tickers: equity },
+    { label: "Fixed Income", tickers: fi },
+    { label: "Real Assets", tickers: real },
+    { label: "Crypto", tickers: crypto },
+  ];
+  const lines = groups.map(g => {
+    const total = g.tickers.reduce((s, t) => s + (weights[t] ?? 0), 0);
+    const parts = g.tickers.map(t => weights[t] ? `${t} ${(weights[t]*100).toFixed(0)}%` : null).filter(Boolean);
+    return `${g.label} ${(total*100).toFixed(0)}%: ${parts.join(" · ")}`;
+  }).join("\n");
+  return lines;
+}
+
+function PortfolioRow({ a }) {
+  const weightTip = WeightsTooltip({ weights: a.weights });
+  return (
+    <tr className="portfolio-row">
+      <td className="left asset-cell sticky-col portfolio-sticky">
+        <span className="ticker portfolio-ticker">HYPOTHETICAL PORTFOLIO</span>
+        <span className="name">{a.name}</span>
+      </td>
+      <td className="num price">
+        <span className="portfolio-nav" title="Synthetic NAV starting at $100">NAV ${a.nav?.toFixed(2) ?? a.last_price.toFixed(2)}</span>
+      </td>
+      <ReturnCell value={a.last_return_pct} className="portfolio-cell" />
+      <VarCell value={a.var_hs} className="portfolio-cell" />
+      <VarCell value={a.var_ewma} className="portfolio-cell" />
+      <VarCell value={a.var_garch} className="portfolio-cell" />
+      <VarCell value={a.var_tgarch} className="portfolio-cell" />
+      <VarCell value={a.var_evt} className="portfolio-cell" />
+      <VarCell value={a.es_ewma} className="portfolio-cell" />
+      <td className="num alpha-cell portfolio-cell">{a.tail_index?.toFixed(2)}</td>
+      <td className="left gauge-cell portfolio-cell">
+        <RiskBar
+          level={a.risk_level}
+          trend={a.var_trend}
+          exceptionRate={a.exception_rate}
+          exceptionCount={a.exception_count}
+        />
+      </td>
+      <td className="num consensus-cell portfolio-cell">{a.mean_var?.toFixed(2)}</td>
+      <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} className="portfolio-cell" />
+    </tr>
+  );
+}
+
+export default function RiskTable({ assets, portfolioWeights }) {
   const [sortKey, setSortKey] = useState("risk");
   const [sortDir, setSortDir] = useState("desc");
 
@@ -129,7 +166,11 @@ export default function RiskTable({ assets }) {
     });
   }, []);
 
-  const sorted = [...assets].sort((a, b) => {
+  // Separate portfolio from individual assets — portfolio is always pinned to bottom
+  const portfolio = assets.find((a) => a.is_portfolio);
+  const individuals = assets.filter((a) => !a.is_portfolio);
+
+  const sorted = [...individuals].sort((a, b) => {
     const fn = SORT_FNS[sortKey] ?? SORT_FNS.risk;
     const av = fn(a);
     const bv = fn(b);
@@ -160,11 +201,16 @@ export default function RiskTable({ assets }) {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((a) => (
+          {sorted.map((a) => {
+            const wt = portfolioWeights?.[a.ticker];
+            return (
             <tr key={a.ticker}>
               <td className="left asset-cell sticky-col">
                 <span className="ticker">{a.ticker}</span>
                 <span className="name">{a.name}</span>
+                {wt != null && (
+                  <span className="portfolio-weight">{(wt * 100).toFixed(0)}% of portfolio</span>
+                )}
               </td>
               <td className="num price">${a.last_price.toLocaleString()}</td>
               <ReturnCell value={a.last_return_pct} />
@@ -186,8 +232,14 @@ export default function RiskTable({ assets }) {
               <td className="num consensus-cell">{a.mean_var?.toFixed(2)}</td>
               <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} />
             </tr>
-          ))}
+            );
+          })}
         </tbody>
+        {portfolio && (
+          <tfoot>
+            <PortfolioRow a={portfolio} />
+          </tfoot>
+        )}
       </table>
     </div>
   );
