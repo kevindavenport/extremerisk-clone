@@ -36,14 +36,17 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  const fmt = (iso) => {
+  const fmtDate = (iso) => {
     if (!iso) return "";
-    const d = new Date(iso);
-    return d.toLocaleString("en-US", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: "UTC",
-    }) + " UTC";
+    // Parse YYYY-MM-DD as a date-only value (no time-zone fiddling)
+    const [y, m, d] = iso.split("-").map(Number);
+    const dateStr = new Date(y, m - 1, d).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    // All US assets reference the 4:00 PM ET market close — standard data-as-of convention
+    return `${dateStr} · 4:00 PM ET`;
   };
 
   const scrollTo = (id) => {
@@ -59,23 +62,31 @@ export default function App() {
       <header className="header">
         <div className="header-left">
           <span className="logo">RISK<span className="logo-accent">LENS</span></span>
-          <span className="subtitle">Daily tail risk monitoring across assets, models, and market regimes</span>
         </div>
         {data && (
           <div className="generated-at">
-            <span className="label">Generated</span>
-            <span className="value">{fmt(data.generated_at)}</span>
+            <span className="label">Data as of</span>
+            <span className="value">{fmtDate(data.data_as_of)}</span>
           </div>
         )}
       </header>
 
       {data && (
         <nav className="page-nav">
+          <span className="nav-label">Sections:</span>
           {NAV_LINKS.map(({ id, label }) => (
             <button key={id} className="nav-btn" onClick={() => scrollTo(id)}>
               {label}
             </button>
           ))}
+          <a
+            href="https://github.com/KLDGH/risklens/blob/main/FAQ.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="nav-btn nav-external"
+          >
+            Methodology &amp; FAQ ↗
+          </a>
         </nav>
       )}
 
@@ -159,7 +170,7 @@ export default function App() {
 
       <footer className="footer">
         <span>VaR models: Historical Simulation · EWMA (λ=0.94) · GARCH(1,1)</span>
-        <span>Data via yfinance · Not financial advice · <a href="https://github.com/KLDGH/risklens/blob/main/FAQ.md" target="_blank" rel="noopener noreferrer" className="footer-link">Methodology &amp; FAQ</a></span>
+        <span>Data via yfinance · Not financial advice</span>
       </footer>
     </div>
   );

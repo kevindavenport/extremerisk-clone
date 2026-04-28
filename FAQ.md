@@ -9,10 +9,36 @@ Running list of questions from demos, reviews, and conversations. Updated as new
 All price data is pulled from Yahoo Finance via a Python library called yfinance. Completely free, no API key required. It gives us daily adjusted closing prices — adjusted means splits and dividends are already baked in. There's roughly a one-day lag: if you run it after 4pm ET you get yesterday's close.
 
 **How often does it update?**
-The live site at kldgh.github.io/risklens refreshes automatically every weekday at 6:30am UTC via a scheduled GitHub Actions job. You can also trigger a manual refresh any time from the GitHub Actions tab.
+The live site refreshes automatically every weekday at 6:30am UTC via a scheduled GitHub Actions job. The "Data as of" date in the top-right corner shows the latest trading day represented in the snapshot. You can also trigger a manual refresh any time from the GitHub Actions tab.
 
 **Is anything being pulled from a risk data vendor?**
-No. The only thing fetched externally is raw closing prices. Every single metric in the table — VaR, ES, GARCH fits, EVT tail fits, the correlation series, the risk gauge percentile, the exception rates — is computed locally in Python on each run. The methodology is fully in the open in `backend/risk_engine.py`.
+No. The only thing fetched externally is raw closing prices. Every single metric in the table — VaR, ES, GARCH fits, EVT tail fits, the correlation series, the risk gauge percentile, the exception rates, the scenario P&Ls — is computed locally in Python on each run. The methodology is fully open in `backend/risk_engine.py`.
+
+
+## Portfolio modes
+
+**What does the portfolio toggle do?**
+It swaps the entire risk snapshot between three different portfolio definitions:
+1. **Hypothetical Portfolio** — an illustrative diversified mix (60% equity, 30% fixed income, 8% real assets, 2% crypto) built from 12 sector and asset-class ETFs. This is the made-up portfolio used to demonstrate the engine's capabilities.
+2. **Vanguard Target 2055 (VFFVX)** — the actual underlying allocation of Vanguard's 2055 target-date retirement fund. ~90% equity / 10% bonds, built from 4 broad passive index ETFs (VTI, VXUS, BND, BNDX).
+3. **American Funds Target 2055 (AAFTX)** — Capital Group's actively-managed equivalent. ~89% equity / 11% bonds, but split across 12 actively-managed mutual funds rather than passive index funds.
+
+When you toggle, the asset rows, weight labels, portfolio summary row, and all stress test cards rebuild using the selected portfolio's holdings.
+
+**Why these three specifically?**
+The hypothetical mode demonstrates the engine. The two real target-date funds show what professionally-managed retirement products actually look like underneath. Vanguard vs. American Funds is the cleanest passive-vs-active comparison in the industry — same risk profile (90/10 equity/bonds), very different construction philosophies. The interesting reveal is in the stress test cards: their topline P&L numbers are similar, but the per-fund contribution bars tell different stories. Capital Group's growth fund (AGTHX) gets hit much harder in the AI Bubble Burst scenario than VTI does, because active growth funds tend to be more concentrated in mega-cap tech.
+
+**Why a 2055 vintage and not 2025 or 2045?**
+2055 is the most equity-tilted vintage (longest time horizon to retirement, most aggressive). It produces the most dramatic risk and stress-test numbers, which is most useful for demoing the tool. Adding multiple vintages would be straightforward — just additional weight configs in `run.py`.
+
+**The Vanguard mode only has 4 tickers but Capital Group has 12. Why?**
+Because that's how they're actually built. Vanguard's TDF holds 4 broad passive index ETFs that each contain thousands of underlying securities (VTI alone holds ~3,700 stocks). Capital Group's TDF holds 12 actively-managed mutual funds, each making its own security selection. The wrapper-level simplicity differs by an order of magnitude even though the actual exposure breadth is similar.
+
+**Why not just use the TDF's own ticker (VFFVX or AAFTX) as a single asset?**
+Two reasons. (1) We'd lose the per-asset breakdown — the contribution bars in the stress tests would be one bar each, which is much less informative. (2) Mutual fund tickers report a single daily NAV, so we couldn't show why a fund moved on a given day. By modeling the underlying holdings directly, we can attribute portfolio P&L back to which holdings drove it.
+
+**Are the scenarios computed using the same date ranges across modes?**
+Yes for historical scenarios. The stress test for the GFC always uses the same date range (Sep 15, 2008 to Mar 9, 2009) — what changes between modes is which tickers are weighted into the portfolio. Some tickers didn't exist during all scenarios (BTC pre-2014, CGUS pre-2022) — the engine excludes them and re-normalizes weights, with a note on the card showing what % of weight was covered.
 
 
 ## The risk table
@@ -28,6 +54,9 @@ Read it as: on the worst 1% of trading days historically, you'd lose at least th
 
 **What's the difference between VaR and ES? They sound the same.**
 They're related but different. VaR tells you where the bad days start — the threshold. ES (also called CVaR — same thing, different name depending on who you learned it from) tells you how bad things are on average once you're past that threshold. ES is always larger than VaR. Regulators now prefer ES over VaR (Basel III/IV) precisely because it describes the shape of the tail, not just its starting point.
+
+**Where do the Low / Elevated / High color thresholds come from?**
+They're pragmatic rules of thumb, not a regulatory standard. Calibrated for daily 1% VaR on liquid ETFs: diversified US equity (SPY) historically sits around 1.5–2.5%; sector ETFs 2–3%; individual stocks 3–5%; crypto and volatile names often 5%+. There's no universal industry standard for "low/medium/high" VaR thresholds because the right level depends on asset class, horizon, and confidence. The per-asset Risk gauge (percentile rank vs 2-year history) is the more rigorous comparison on this page since it's self-calibrating per asset.
 
 **What is the Consensus column?**
 A simple average across all five VaR models. Treat it as a rough heuristic reference point, not a precise estimate — it has no theoretical grounding as a risk measure. It's useful for a quick single-number comparison across assets but the Range column is more informative.
@@ -47,14 +76,41 @@ A 5-day trend indicator. ↑ in red means VaR has been rising — risk is buildi
 **What are VaR exceptions?**
 A day where the actual loss exceeded what the VaR model predicted. At 1% confidence, you expect roughly 1% of days to be exceptions — about 5 per year, 10 over 2 years. If an asset is running at 3-4%, EWMA is systematically underestimating tail risk for that asset and you should weight EVT estimates more heavily. You can see this in the hover tooltip on each risk bar.
 
+**What is the bottom row labeled "HYPOTHETICAL PORTFOLIO" (or the active mode's name)?**
+The portfolio summary row. It's not an individual asset — it's the result of running all five VaR models on the daily weighted portfolio return series. The diversification benefit is visible directly: portfolio VaR is meaningfully lower than the weighted average of individual VaRs because correlated holdings offset each other. The "Range" column tells you how much the models agree on the portfolio's tail behavior.
 
-## The charts
+
+## Stress tests & scenarios
+
+**What's the difference between historical and hypothetical scenarios?**
+Historical scenarios (grey badge) replay actual price data from a defined date range — they're 100% data-driven and require no assumptions. Hypothetical scenarios (amber badge) apply analyst-estimated shock vectors per asset — they're forward-looking estimates, not forecasts. The visual distinction matters because the historical numbers are reproducible facts; the hypothetical numbers are illustrative judgments.
+
+**How are the hypothetical shock vectors estimated?**
+By informed analyst judgment, looking at directional exposures. For a Taiwan invasion: semiconductors get hit hard (so QQQ -22% because of TSMC/NVDA exposure), Asia EM is heavily exposed (EEM -22%), gold and Treasuries rally on flight to safety. The exact percentages are illustrative — what matters more than the absolute numbers is the *relative* sensitivity across holdings. The shock vectors live in `backend/risk_engine.py` under `HYPOTHETICAL_SCENARIOS` and can be edited by anyone with a working group's perspective on the scenario.
+
+**Why these specific scenarios?**
+The historical set covers regimes that hit different parts of a portfolio differently: GFC (credit-driven equity crash), COVID (panic-driven equity crash with bond rally), 2022 rate shock (the famous 60/40 breakdown — both stocks and bonds sold off), Russia-Ukraine (commodity shock), Q4 2018 (Fed-driven sell-off). The hypothetical set covers near-term geopolitical and macro tail risks: Taiwan invasion (semiconductor + Asia), Iran conflict (oil), US recession (Fed pivot scenario), AI bubble burst (mega-cap tech repricing).
+
+**Why is the 2022 rate shock the same number across all three portfolio modes?**
+Because in 2022 there was no hedge. Stocks AND bonds both sold off simultaneously. The 60/40 portfolio's traditional defense — bonds rallying when stocks fall — broke completely. Whether your portfolio is 90/10 (Vanguard TDF), 89/11 (Capital Group TDF), or 60/30 (hypothetical), the bonds didn't help. The Taiwan invasion or US recession scenarios show much bigger differences across modes precisely because in those, the bond allocation matters.
+
+**What does the "% of portfolio weight covered" note mean on some cards?**
+It appears when some assets in the active portfolio didn't exist during the historical scenario's date range. For the GFC scenario in hypothetical mode, BTC-USD (launched 2014) and CGUS (launched 2022) didn't exist, so they're excluded and the remaining weights are renormalized. The note tells you what fraction of the portfolio's weight was actually covered — 95% means 5% of holdings were excluded.
+
+**Why does the portfolio toggle change the scenarios?**
+Because each scenario is computed against the *active portfolio*, not against the market in aggregate. A scenario is an answer to "what would happen to *my* holdings during this event." Different holdings → different P&L → different contribution breakdown. This is what makes the toggle interesting — same scenarios, very different stories.
+
+
+## Market context charts
 
 **What is the S&P 500 Risk and Losses chart showing?**
 Three things at once for each year back to 1990: the calmest day's risk estimate (green bar), the most stressed day's risk estimate (blue bar), and the annual return when it was negative (red bar). The VIX line (amber, right axis) shows the market's own fear gauge — the annual average implied volatility priced into options. The key insight is that the blue bars spike during crises — the model sees stress building in real time — while the red bars only confirm the damage after the fact.
 
 **Why does the VIX line matter?**
 VIX is forward-looking in a way that our other models aren't. It reflects what options traders are paying to hedge — it's a market consensus on expected volatility for the next 30 days. Our VaR models are backward-looking (based on historical returns). When VIX spikes above our EWMA VaR estimates, the market is pricing in more stress than recent history suggests. That divergence is worth paying attention to.
+
+**Why doesn't the S&P 500 chart change when I toggle portfolios?**
+It's market context, not portfolio analytics. The S&P 500 is the same regardless of what you hold. Same with the correlation chart. The reorganized section order (Risk Snapshot and Stress Tests at top, market charts at bottom) reflects this — everything that responds to the toggle is grouped above, market reference data lives below.
 
 **What is the Cross-Asset Correlation chart?**
 Rolling 60-day average pairwise correlation across 10 core ETFs (SPY, QQQ, GLD, TLT, EEM, IWM, HYG, LQD, XLF, VNQ) going back to 2007. In normal markets this sits around 0.15–0.35 — assets move somewhat independently and diversification works. When it spikes, everything is moving together and diversification collapses.
@@ -66,22 +122,36 @@ This is the most counterintuitive finding in the data. In the GFC (2008-09), equ
 ## What would I actually do with this?
 
 **What actions should I take based on these numbers?**
-VaR alone doesn't tell you to do anything specific — it's a monitoring tool, not a signal generator. What it's useful for: position sizing (if BTC VaR is $12 on $100, a bad day costs 12% of notional — you might reduce size), risk budget allocation (no single asset should represent more than X% of portfolio daily loss), and regime awareness (multiple assets at 90%+ risk gauge simultaneously is a macro stress signal).
+This is a monitoring tool, not a signal generator. What it's useful for:
+- **Position sizing**: if BTC VaR is $12 on $100, a bad day costs 12% of notional — you might reduce size
+- **Risk budget allocation**: no single asset should represent more than X% of portfolio daily loss
+- **Regime awareness**: multiple assets at 90%+ risk gauge simultaneously is a macro stress signal
+- **Scenario checks**: before an event you're worried about, look at the corresponding stress test card to see how your portfolio is exposed
 
 **Would this have helped historically?**
 Mixed. The risk gauge would have been elevated going into 2008 and March 2020 — volatility was building before the crash peaks. But VaR is procyclical: it's low when markets are calm and spikes during the crash, not before it. You'd have seen the warning as it was already happening, not weeks ahead. The correlation chart is more interesting as a leading indicator — correlation was rising in late 2007 before the GFC peaked. The honest answer: VaR tells you how bad things are, not how bad they're about to get.
 
 **What would make it genuinely predictive?**
-A few additions with actual forward-looking evidence: (1) VaR trajectory — is risk trending up or down over 5 days? Already implemented via the arrows. (2) VaR exceptions — is the model systematically underestimating for a given asset? Already implemented in the hover tooltip. (3) VIX as a forward-looking overlay — already on the historical chart. (4) Term structure — comparing 1-day vs 20-day VaR ratios to detect structural stress building. Not yet built. (5) Options-implied vol per asset from the options chain — most forward-looking but most complex to implement.
+A few additions with actual forward-looking evidence:
+1. **VaR trajectory** — is risk trending up or down over 5 days? Already implemented via the arrows
+2. **VaR exceptions** — is the model systematically underestimating for a given asset? Already implemented in the hover tooltip
+3. **VIX as a forward-looking overlay** — already on the historical chart
+4. **Term structure** — comparing 1-day vs 20-day VaR ratios to detect structural stress building. Not yet built
+5. **Options-implied vol per asset** from the options chain — most forward-looking but most complex to implement
 
 **What's missing to make this production-ready for a real fund?**
-The biggest gap is portfolio-level risk. Everything currently is per-asset. A real portfolio with $10M across 12 positions has a very different risk profile than the sum of its parts due to correlation. The natural next step is portfolio VaR (aggregate across positions weighted by actual holdings) and component VaR (each position's contribution to total portfolio risk). The correlation work already points toward this — it just needs the holdings layer on top.
+Two big gaps remain:
+1. **Component VaR / risk attribution** — we currently compute portfolio VaR by running models on the weighted return series, which captures correlation effects but doesn't decompose how much each holding contributes to portfolio risk. A rigorous version would compute marginal VaR (sensitivity of portfolio VaR to a small change in each weight) and component VaR (each holding's contribution to total portfolio VaR).
+2. **Multi-period VaR** — everything is currently 1-day. A real fund needs 1-day, 10-day, and 1-month VaR for different liquidity assumptions and regulatory requirements. This involves either time-scaling (multiplying by √N — fine for normal returns, broken for fat tails) or directly fitting models to multi-day overlapping returns.
+
+**How does this compare to professional risk systems like Bloomberg PORT or MSCI Barra?**
+The methodology is comparable for what's covered (multiple VaR models, EVT, exceptions, stress tests). The gaps are: (1) those systems use factor models that decompose risk into named factors (style, sector, geography, currency) rather than just per-ticker VaR, (2) they have decades of curated alternative data and proprietary risk factor definitions, (3) they cover thousands of asset classes including private credit, derivatives, and structured products. RiskLens is a deliberately scoped subset focused on liquid public ETFs.
 
 
 ## Technical
 
 **Is all the math done from scratch?**
-Yes for everything except the GARCH fitting, which uses the `arch` Python library. Historical simulation, EWMA, EVT, the Hill estimator, the risk gauge percentile rank, VaR exceptions, rolling correlation — all implemented directly in `backend/risk_engine.py`.
+Yes for everything except the GARCH fitting, which uses the `arch` Python library. Historical simulation, EWMA, EVT, the Hill estimator, the risk gauge percentile rank, VaR exceptions, rolling correlation, scenario aggregation — all implemented directly in `backend/risk_engine.py`.
 
 **Why five models? Isn't that redundant?**
 They span fundamentally different approaches: non-parametric (HS), parametric with fast decay (EWMA), conditional volatility (GARCH), asymmetric volatility (tGARCH), and tail-specific (EVT). They make different assumptions and fail in different regimes. Having all five lets you see model disagreement directly rather than trusting a single number. When EVT diverges significantly from the others, that's a specific, actionable signal about tail behavior.
@@ -93,3 +163,6 @@ The shortest-history ticker in the correlation basket is HYG (launched April 200
 It influences the absolute level of the average but not the signal. SPY and QQQ are typically 0.95+ correlated, so that pair is always pulling the average up. But since it's always there, its contribution to the level is constant — what changes the average over time is when normally uncorrelated pairs start moving together. The most informative pairs in the basket are the cross-asset ones: SPY/GLD, TLT/SPY, HYG/TLT. In normal markets those correlations are low or negative. When they spike — as in 2022 when stocks and bonds both sold off — that's what drives the chart up. The SPY/QQQ pair being perpetually high is almost irrelevant to the regime signal.
 
 A more rigorous version would use a weighted average that downweights highly collinear pairs — for example weighting each pair inversely by its long-run average correlation, or using PCA to weight by independent variance explained. That would lower the baseline level and give more signal weight to cross-asset relationships. A reasonable version 2 enhancement if the methodology gets scrutinized closely.
+
+**How accurate are the target-date fund weights?**
+Within a few percentage points of the published fact sheets. Both Vanguard and Capital Group disclose their TDF holdings publicly — Vanguard quarterly, Capital Group monthly. The exact allocation drifts slightly over time as part of the glide path (gradually shifting toward bonds as retirement approaches). The numbers in `run.py` are anchored to mid-2024 disclosures and would be ~1pp off as of any given run. For risk modeling purposes this is well within the noise of the analyst-estimated shock vectors used in hypothetical scenarios.

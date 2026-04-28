@@ -9,8 +9,8 @@
   --bg2: #111e30;
   --bg3: #162438;
   --border: #1e3048;
-  --text: #d4dce8;
-  --text-dim: #8896aa;
+  --text: #dde4ee;
+  --text-dim: #9aabc0;
   --text-bright: #f0f4fa;
   --green: #00c97a;
   --yellow: #f0b429;
@@ -23,7 +23,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   min-height: 100vh;
 }

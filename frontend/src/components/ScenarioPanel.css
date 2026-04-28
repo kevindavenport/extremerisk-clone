@@ -88,9 +88,9 @@
 }
 
 .scenario-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
-  line-height: 1.5;
+  line-height: 1.65;
   margin-top: 2px;
 }
 

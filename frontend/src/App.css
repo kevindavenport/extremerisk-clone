@@ -59,8 +59,18 @@
 
 .page-nav {
   display: flex;
+  align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-right: 4px;
 }
 
 .nav-btn {
@@ -79,6 +89,21 @@
 .nav-btn:hover {
   color: var(--accent);
   border-color: var(--accent);
+  background: var(--bg3);
+}
+
+.nav-external {
+  margin-left: auto;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  border-color: var(--accent);
+  opacity: 0.85;
+}
+
+.nav-external:hover {
+  opacity: 1;
   background: var(--bg3);
 }
 
@@ -119,9 +144,9 @@
 }
 
 .mode-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
-  line-height: 1.5;
+  line-height: 1.65;
   margin-top: 2px;
 }
 
@@ -260,9 +285,9 @@
 }
 
 .section-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
-  line-height: 1.5;
+  line-height: 1.65;
 }
 
 .footer {

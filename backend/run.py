@@ -88,7 +88,7 @@ PORTFOLIO_MODES = {
     },
     "tdf_2055": {
         "label":       "Vanguard Target 2055 (VFFVX)",
-        "description": "A real-world target-date fund's actual underlying holdings: ~90% equity (54% US, 36% intl) and ~10% bonds (7% US, 3% intl). Built from 4 broad passive index ETFs.",
+        "description": "Underlying holdings of the Vanguard 2055 target-date fund: ~90% equity (54% US, 36% intl) and ~10% bonds (7% US, 3% intl). Built from 4 broad passive index ETFs.",
         "tickers":     TDF_2055_TICKERS,
         "names":       TDF_2055_NAMES,
         "weights":     TDF_2055_WEIGHTS,
@@ -96,7 +96,7 @@ PORTFOLIO_MODES = {
     },
     "cg_2055": {
         "label":       "American Funds Target 2055 (AAFTX)",
-        "description": "Capital Group's actively-managed alternative: ~89% equity, ~11% bonds, but split across 12 actively-managed mutual funds rather than passive index ETFs. Same risk profile, very different construction philosophy.",
+        "description": "~89% equity, ~11% bonds, split across 12 actively-managed American Funds mutual funds.",
         "tickers":     CG_2055_TICKERS,
         "names":       CG_2055_NAMES,
         "weights":     CG_2055_WEIGHTS,
@@ -208,8 +208,12 @@ def main():
     corr_returns = compute_log_returns(prices_long[corr_cols])
     corr_history = compute_rolling_correlation(corr_returns)
 
+    # Latest trading date represented in the asset price data (typically yesterday's close)
+    data_as_of = prices_10y.index[-1].strftime("%Y-%m-%d")
+
     output = {
         "generated_at":        datetime.now(timezone.utc).isoformat(),
+        "data_as_of":          data_as_of,
         "default_mode":        "hypothetical",
         "portfolios":          portfolios,
         "sp500_history":       sp500_history,
