@@ -17,13 +17,13 @@
   position: fixed;
   transform: translateX(-50%) translateY(calc(-100% - 10px));
   width: 220px;
-  background: #0d1526;
-  border: 1px solid #2a3545;
+  background: #1a2b3c;
+  border: 1px solid #2e4460;
   border-radius: 4px;
   padding: 8px 10px;
   font-size: 10px;
   line-height: 1.6;
-  color: #9aafca;
+  color: #c8d8e8;
   font-family: "JetBrains Mono", monospace;
   font-weight: 400;
   text-transform: none;
@@ -42,5 +42,5 @@
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: #2a3545;
+  border-top-color: #2e4460;
 }

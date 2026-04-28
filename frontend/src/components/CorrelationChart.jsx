@@ -91,11 +91,11 @@ export default function CorrelationChart({ data }) {
           60-day rolling avg pairwise correlation · SPY QQQ GLD TLT EEM IWM HYG LQD XLF VNQ
         </span>
         <button
-          className="insight-toggle"
+          className={`insight-toggle${insightOpen ? " open" : ""}`}
           onClick={() => setInsightOpen((o) => !o)}
           aria-expanded={insightOpen}
         >
-          {insightOpen ? "▾" : "▸"} Key insight
+          {insightOpen ? "▾ Hide insight" : "▸ Key insight"}
         </button>
       </div>
 

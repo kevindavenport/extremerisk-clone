@@ -10,8 +10,9 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  padding-bottom: 16px;
+  padding: 16px 0;
   border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
 }
 
 .header-left {
@@ -150,11 +151,11 @@
 .footer-link {
   color: var(--text-dim);
   text-decoration: none;
-  border-bottom: 1px solid #2a3a50;
+  border-bottom: 1px solid var(--border);
   transition: color 0.15s, border-color 0.15s;
 }
 
 .footer-link:hover {
-  color: #60a5fa;
-  border-bottom-color: #60a5fa;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }

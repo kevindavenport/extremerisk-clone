@@ -127,11 +127,11 @@ export default function HistoricalChart({ data }) {
           Daily EWMA VaR (1% / $100 portfolio) · min &amp; max per year
         </span>
         <button
-          className="insight-toggle"
+          className={`insight-toggle${insightOpen ? " open" : ""}`}
           onClick={() => setInsightOpen((o) => !o)}
           aria-expanded={insightOpen}
         >
-          {insightOpen ? "▾" : "▸"} Key insight
+          {insightOpen ? "▾ Hide insight" : "▸ Key insight"}
         </button>
       </div>
       {insightOpen && (
