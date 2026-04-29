@@ -182,3 +182,19 @@ To enable: go to **Settings → Pages → Source → GitHub Actions** in your re
 - **Frontend:** React 18 · Vite · Recharts · plain CSS (no UI framework)
 - **Hosting:** GitHub Pages via GitHub Actions
 - **Data:** Yahoo Finance (free, via yfinance) · No API key required
+
+
+## License
+
+Released under the [MIT License](./LICENSE). Free to use, modify, and distribute — including for commercial purposes — provided the original copyright notice and license are preserved.
+
+If you use, fork, or adapt this project, attribution back to this repository is appreciated but not required beyond what the license stipulates.
+
+
+## Disclaimer
+
+RiskLens is a **personal project** built for educational and demonstration purposes. It is not affiliated with, endorsed by, or supported by any employer, financial institution, or data vendor.
+
+Nothing in this project constitutes **investment advice, financial advice, trading advice, or any other sort of advice**, and the figures shown should not be relied upon for any investment, hedging, or risk-management decision. The models implemented here are publicly-known statistical methods applied to publicly-available price data; their output is provided for illustrative and methodological transparency reasons only.
+
+Past performance and historical risk metrics are not indicative of future results. Use at your own risk.
