@@ -95,7 +95,7 @@ PORTFOLIO_MODES = {
         "name":        "Vanguard Target Retirement 2055",
     },
     "cg_2055": {
-        "label":       "American Funds Target 2055 (AAFTX)",
+        "label":       "AF Target 2055 (AAFTX)",
         "description": "~89% equity, ~11% bonds, split across 12 actively-managed American Funds mutual funds.",
         "tickers":     CG_2055_TICKERS,
         "names":       CG_2055_NAMES,
