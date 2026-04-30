@@ -98,8 +98,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const tickFormatter = (v) => {
   if (v === 0) return "0";
-  if (v < 0) return `${v}%`;
-  return `$${v}`;
+  if (v < 0) return `${v}% (-$${Math.abs(v)})`;
+  return `$${v} (${v}%)`;
 };
 
 export default function HistoricalChart({ data }) {
@@ -138,15 +138,17 @@ export default function HistoricalChart({ data }) {
         <div className="insight-panel">
           <span className="insight-label">💡</span>
           <p>
-            The <span className="ins-blue">blue bars</span> (peak daily risk each year) spike{" "}
-            <em>during</em> crises — not after. In 2008, the blue bar hit{" "}
-            <strong>$15</strong> on a $100 position before the year's total loss
-            was confirmed. In 2020, risk spiked and collapsed within months.
-            This is the core value of daily risk monitoring:{" "}
-            <strong>the model sees stress building in real time</strong>, while
-            annual returns only tell you what already happened.
-            The <span className="ins-red">red bars</span> show the damage;
-            the <span className="ins-blue">blue bars</span> show the warning.
+            The <span className="ins-blue">blue bars</span> show peak daily VaR for each
+            year — the worst single-day loss the model expected, at the 1% confidence
+            level. The <span className="ins-red">red bars</span> show full-year losses
+            for years that ended negative. In <strong>2008</strong>, peak daily VaR
+            reached roughly <strong>15%</strong> by mid-year, well before the year's
+            final <strong>−38%</strong> return had been booked. In March{" "}
+            <strong>2020</strong>, it spiked above <strong>10%</strong> within weeks
+            and fell back under <strong>3%</strong> by September. The model captures
+            regime shifts in real time; annual returns only confirm what has already
+            happened. The amber VIX line — the market's own forward-looking volatility
+            estimate — tends to lead realized risk at major turning points.
           </p>
         </div>
       )}
@@ -174,7 +176,7 @@ export default function HistoricalChart({ data }) {
               tickLine={false}
               axisLine={false}
               tickFormatter={tickFormatter}
-              width={36}
+              width={88}
             />
             <YAxis
               yAxisId="vix"

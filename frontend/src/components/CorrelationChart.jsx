@@ -103,15 +103,16 @@ export default function CorrelationChart({ data }) {
         <div className="insight-panel">
           <span className="insight-label">💡</span>
           <p>
-            In normal markets these ten ETFs have an average pairwise correlation of roughly{" "}
-            <strong>0.15–0.35</strong> — they move independently and diversification works.
-            The all-time peak in this dataset is <strong>2022</strong>, not the GFC — because in 2022
-            the Fed's aggressive rate hike cycle caused stocks <em>and</em> bonds to sell off
-            simultaneously, breaking the traditional 60/40 hedge. In the GFC, treasuries and gold
-            surged as stocks fell (flight to safety), keeping average correlation moderate.
-            The <em>correlation breakdown problem</em> is most dangerous precisely when it's
-            least expected: a portfolio built for normal-market diversification can behave
-            like a concentrated bet in a rate or inflation shock.
+            The peak in this dataset is <strong>2022</strong>, not the GFC. In 2008–09,
+            treasuries and gold rallied as stocks crashed (flight to safety), so average
+            pairwise correlation stayed moderate even during the equity drawdown. In
+            2022, the Fed's hiking cycle pushed stocks and bonds down simultaneously,
+            removing the diversification a typical 60/40 portfolio relies on. Above
+            roughly <strong>0.5</strong>, the holdings in this basket move together
+            closely enough that a portfolio's risk profile starts to resemble its
+            largest equity position. Correlation spikes quickly during stress and
+            decays more slowly afterward, which makes elevated correlation a useful
+            regime signal.
           </p>
         </div>
       )}
