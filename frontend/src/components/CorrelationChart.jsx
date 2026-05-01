@@ -1,7 +1,8 @@
 import { useState } from "react";
 import {
-  AreaChart,
+  ComposedChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -51,19 +52,27 @@ const CrisisLabel = ({ viewBox, label }) => {
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
-  const val = d?.avg_corr?.toFixed(2);
+  const corr = d?.avg_corr;
+  const vix = d?.vix;
+  const corrVal = corr?.toFixed(2);
   const level =
-    d?.avg_corr >= 0.65 ? "High — diversification strained"
-    : d?.avg_corr >= 0.5 ? "Elevated — assets moving together"
-    : d?.avg_corr >= 0.35 ? "Normal — typical market correlation"
+    corr >= 0.65 ? "High — diversification strained"
+    : corr >= 0.5 ? "Elevated — assets moving together"
+    : corr >= 0.35 ? "Normal — typical market correlation"
     : "Low — strong diversification benefit";
   return (
     <div className="chart-tooltip">
       <div className="tt-year">{d?.date}</div>
       <div className="tt-row">
         <span style={{ color: "#60a5fa" }}>Avg corr</span>
-        <span>{val}</span>
+        <span>{corrVal}</span>
       </div>
+      {vix != null && (
+        <div className="tt-row">
+          <span style={{ color: "#f59e0b" }}>VIX (60d avg)</span>
+          <span>{vix.toFixed(1)}</span>
+        </div>
+      )}
       <div style={{ marginTop: 6, fontSize: 11, color: "#8896aa", lineHeight: 1.4 }}>
         {level}
       </div>
@@ -88,7 +97,7 @@ export default function CorrelationChart({ data }) {
       <div className="chart-header">
         <span className="chart-title">Cross-Asset Correlation</span>
         <span className="chart-subtitle">
-          60-day rolling avg pairwise correlation · SPY QQQ GLD TLT EEM IWM HYG LQD XLF VNQ
+          60-day rolling avg pairwise correlation · SPY QQQ GLD TLT EEM IWM HYG LQD XLF VNQ · VIX (right axis)
         </span>
         <button
           className={`insight-toggle${insightOpen ? " open" : ""}`}
@@ -103,23 +112,28 @@ export default function CorrelationChart({ data }) {
         <div className="insight-panel">
           <span className="insight-label">💡</span>
           <p>
-            The peak in this dataset is <strong>2022</strong>, not the GFC. In 2008–09,
-            treasuries and gold rallied as stocks crashed (flight to safety), so average
-            pairwise correlation stayed moderate even during the equity drawdown. In
-            2022, the Fed's hiking cycle pushed stocks and bonds down simultaneously,
-            removing the diversification a typical 60/40 portfolio relies on. Above
-            roughly <strong>0.5</strong>, the holdings in this basket move together
-            closely enough that a portfolio's risk profile starts to resemble its
-            largest equity position. Correlation spikes quickly during stress and
-            decays more slowly afterward, which makes elevated correlation a useful
-            regime signal.
+            <strong>The GFC was a volatility crisis. 2022 was a correlation
+            crisis.</strong> In <strong>2008</strong> and <strong>2020</strong>{" "}
+            (COVID), the amber VIX line and the blue correlation area moved
+            together — equity vol exploded and assets piled into the same
+            direction. Classic risk-off. But <strong>2022</strong> broke the
+            pattern: cross-asset correlation hit <strong>0.70</strong> — the
+            highest in the dataset — while VIX peaked only around{" "}
+            <strong>35</strong>. The Fed's hiking cycle pushed stocks <em>and</em>{" "}
+            bonds down together without the equity vol spike normally
+            associated with crisis. A portfolio looking only at VIX would have
+            seen "moderate" stress; the same portfolio looking at correlation
+            would have seen the worst diversification breakdown in modern
+            history. Vol-driven crises hammer single-asset risk; correlation-driven
+            crises hammer the diversification benefit between assets. They
+            require different defenses.
           </p>
         </div>
       )}
 
       <div style={{ width: "100%", height: 300 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
+          <ComposedChart
             data={data}
             margin={{ top: 16, right: 40, left: 4, bottom: 0 }}
           >
@@ -143,6 +157,7 @@ export default function CorrelationChart({ data }) {
             />
 
             <YAxis
+              yAxisId="corr"
               domain={[0, 1]}
               tickFormatter={(v) => v.toFixed(1)}
               tick={{ fill: "#8896aa", fontSize: 11, fontFamily: "JetBrains Mono, monospace" }}
@@ -150,12 +165,24 @@ export default function CorrelationChart({ data }) {
               axisLine={false}
               width={38}
             />
+            <YAxis
+              yAxisId="vix"
+              orientation="right"
+              domain={[0, 90]}
+              tickFormatter={(v) => v === 0 ? "" : `${v}`}
+              tick={{ fill: "#f59e0b", fontSize: 10, fontFamily: "JetBrains Mono, monospace" }}
+              tickLine={false}
+              axisLine={false}
+              width={28}
+              label={{ value: "VIX", angle: 90, position: "insideRight", fill: "#f59e0b", fontSize: 10, fontFamily: "JetBrains Mono, monospace", dx: 12 }}
+            />
 
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)", strokeWidth: 1 }} />
 
-            {/* Warning threshold */}
+            {/* Warning threshold for correlation */}
             <ReferenceLine
               y={0.6}
+              yAxisId="corr"
               stroke="#f59e0b"
               strokeDasharray="4 3"
               strokeOpacity={0.6}
@@ -174,6 +201,7 @@ export default function CorrelationChart({ data }) {
               <ReferenceLine
                 key={c.label}
                 x={c.date}
+                yAxisId="corr"
                 stroke="#f59e0b"
                 strokeOpacity={0.45}
                 strokeWidth={1}
@@ -183,6 +211,7 @@ export default function CorrelationChart({ data }) {
             ))}
 
             <Area
+              yAxisId="corr"
               type="monotone"
               dataKey="avg_corr"
               stroke="#60a5fa"
@@ -191,12 +220,22 @@ export default function CorrelationChart({ data }) {
               dot={false}
               isAnimationActive={false}
             />
-          </AreaChart>
+            <Line
+              yAxisId="vix"
+              type="monotone"
+              dataKey="vix"
+              stroke="#f59e0b"
+              strokeWidth={1.25}
+              dot={false}
+              opacity={0.85}
+              isAnimationActive={false}
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
 
       <div style={{ fontSize: 11, color: "#4a5a6e", marginTop: 8, textAlign: "right" }}>
-        Amber line = 60% correlation threshold · crisis labels = 60-day window centered near peak stress
+        Blue area = correlation (left axis, 0–1) · Amber line = VIX 60-day average (right axis, 0–90) · Crisis labels = 60-day window centered near peak stress
       </div>
     </div>
   );

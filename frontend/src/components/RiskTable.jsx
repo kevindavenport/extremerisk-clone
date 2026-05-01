@@ -149,12 +149,12 @@ function PortfolioRow({ a, portfolioLabel }) {
         <span className="portfolio-nav" title="Synthetic NAV starting at $100">NAV ${a.nav?.toFixed(2) ?? a.last_price.toFixed(2)}</span>
       </td>
       <ReturnCell value={a.last_return_pct} className="portfolio-cell" />
-      <VarCell value={a.var_hs} className="portfolio-cell" />
-      <VarCell value={a.var_ewma} className="portfolio-cell" />
-      <VarCell value={a.var_garch} className="portfolio-cell" />
-      <VarCell value={a.var_tgarch} className="portfolio-cell" />
-      <VarCell value={a.var_evt} className="portfolio-cell" />
-      <VarCell value={a.es_ewma} className="portfolio-cell" />
+      <VarCell value={a.var_hs}      className="portfolio-cell col-models group-start" />
+      <VarCell value={a.var_ewma}    className="portfolio-cell col-models" />
+      <VarCell value={a.var_garch}   className="portfolio-cell col-models" />
+      <VarCell value={a.var_tgarch}  className="portfolio-cell col-models" />
+      <VarCell value={a.var_evt}     className="portfolio-cell col-models group-end" />
+      <VarCell value={a.es_ewma}     className="portfolio-cell" />
       <td className="num alpha-cell portfolio-cell">{a.tail_index?.toFixed(2)}</td>
       <td className="left gauge-cell portfolio-cell">
         <RiskBar
@@ -164,9 +164,9 @@ function PortfolioRow({ a, portfolioLabel }) {
           exceptionCount={a.exception_count}
         />
       </td>
-      <td className="num consensus-cell portfolio-cell">{a.mean_var?.toFixed(2)}</td>
-      <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} className="portfolio-cell" />
-      <td className="num portfolio-cell" title="Sum of component VaRs across all holdings — equals portfolio EWMA VaR by construction">
+      <td className="num consensus-cell portfolio-cell col-summary group-start">{a.mean_var?.toFixed(2)}</td>
+      <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} className="portfolio-cell col-summary" />
+      <td className="num portfolio-cell col-summary group-end" title="Sum of component VaRs across all holdings — equals portfolio EWMA VaR by construction">
         {a.component_var_total != null ? `Σ ${a.component_var_total.toFixed(2)}` : "—"}
       </td>
     </tr>
@@ -210,17 +210,17 @@ export default function RiskTable({ assets, portfolioWeights, portfolioLabel }) 
             <Th col="name"  label="Asset"   className="left sticky-col" {...sp} />
             <Th col="price" label="Price"   className="num" {...sp} />
             <ThWithTip col="ret"       label="1d Ret%"    tip={TIPS.ret}       className="num" {...sp} />
-            <ThWithTip col="varHs"     label="VaR HS"     tip={TIPS.varHs}     className="num" {...sp} />
-            <ThWithTip col="varEwma"   label="VaR EWMA"   tip={TIPS.varEwma}   className="num" {...sp} />
-            <ThWithTip col="varGarch"  label="VaR GARCH"  tip={TIPS.varGarch}  className="num" {...sp} />
-            <ThWithTip col="varTgarch" label="VaR tGARCH" tip={TIPS.varTgarch} className="num" {...sp} />
-            <ThWithTip col="varEvt"    label="VaR EVT"    tip={TIPS.varEvt}    className="num" {...sp} />
+            <ThWithTip col="varHs"     label="VaR HS"     tip={TIPS.varHs}     className="num col-models group-start" {...sp} />
+            <ThWithTip col="varEwma"   label="VaR EWMA"   tip={TIPS.varEwma}   className="num col-models" {...sp} />
+            <ThWithTip col="varGarch"  label="VaR GARCH"  tip={TIPS.varGarch}  className="num col-models" {...sp} />
+            <ThWithTip col="varTgarch" label="VaR tGARCH" tip={TIPS.varTgarch} className="num col-models" {...sp} />
+            <ThWithTip col="varEvt"    label="VaR EVT"    tip={TIPS.varEvt}    className="num col-models group-end" {...sp} />
             <ThWithTip col="esEwma"    label="ES EWMA"    tip={TIPS.esEwma}    className="num" {...sp} />
             <ThWithTip col="alpha"     label={<span style={{textTransform:"none"}}>α tail</span>} tip={TIPS.alpha} className="num" {...sp} />
             <ThWithTip col="risk"      label="Risk"       tip={TIPS.risk}      className="left" {...sp} />
-            <ThWithTip col="consensus" label="Consensus"  tip={TIPS.consensus} className="num" {...sp} />
-            <ThWithTip col="range"     label="Range"      tip={TIPS.range}     className="num" {...sp} />
-            <ThWithTip col="compVar"   label="Comp VaR"   tip={TIPS.compVar}   className="num" {...sp} />
+            <ThWithTip col="consensus" label="Consensus"  tip={TIPS.consensus} className="num col-summary group-start" {...sp} />
+            <ThWithTip col="range"     label="Range"      tip={TIPS.range}     className="num col-summary" {...sp} />
+            <ThWithTip col="compVar"   label="Comp VaR"   tip={TIPS.compVar}   className="num col-summary group-end" {...sp} />
           </tr>
         </thead>
         <tbody>
@@ -237,11 +237,11 @@ export default function RiskTable({ assets, portfolioWeights, portfolioLabel }) 
               </td>
               <td className="num price">${a.last_price.toLocaleString()}</td>
               <ReturnCell value={a.last_return_pct} />
-              <VarCell value={a.var_hs} />
-              <VarCell value={a.var_ewma} />
-              <VarCell value={a.var_garch} />
-              <VarCell value={a.var_tgarch} />
-              <VarCell value={a.var_evt} />
+              <VarCell value={a.var_hs}      className="col-models group-start" />
+              <VarCell value={a.var_ewma}    className="col-models" />
+              <VarCell value={a.var_garch}   className="col-models" />
+              <VarCell value={a.var_tgarch}  className="col-models" />
+              <VarCell value={a.var_evt}     className="col-models group-end" />
               <VarCell value={a.es_ewma} />
               <td className="num alpha-cell">{a.tail_index?.toFixed(2)}</td>
               <td className="left gauge-cell">
@@ -252,9 +252,9 @@ export default function RiskTable({ assets, portfolioWeights, portfolioLabel }) 
                   exceptionCount={a.exception_count}
                 />
               </td>
-              <td className="num consensus-cell">{a.mean_var?.toFixed(2)}</td>
-              <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} />
-              <CompVarCell value={a.component_var} />
+              <td className="num consensus-cell col-summary group-start">{a.mean_var?.toFixed(2)}</td>
+              <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} className="col-summary" />
+              <CompVarCell value={a.component_var} className="col-summary group-end" />
             </tr>
             );
           })}

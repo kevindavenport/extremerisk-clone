@@ -221,7 +221,7 @@
   min-height: 120px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 36px;
 }
 
 .state-msg {
@@ -269,7 +269,7 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
 .section-header {

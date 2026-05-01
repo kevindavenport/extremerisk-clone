@@ -226,11 +226,23 @@ def main():
     print("  Computing yearly risk history...")
     sp500_history = compute_sp500_history(sp500_returns, sp500_prices, vix=vix)
 
-    # Cross-asset correlation
+    # Cross-asset correlation, with rolling-60-day VIX overlay
     print("Computing rolling cross-asset correlation...")
     corr_cols = [c for c in CORR_TICKERS if c in prices_long.columns]
     corr_returns = compute_log_returns(prices_long[corr_cols])
     corr_history = compute_rolling_correlation(corr_returns)
+
+    # Smooth VIX with the same 60-day window as the correlation series so the
+    # two metrics are visually comparable on the chart's twin axes.
+    vix_smooth = vix.rolling(60, min_periods=20).mean()
+    for entry in corr_history:
+        d = pd.Timestamp(entry["date"])
+        if d in vix_smooth.index:
+            v = vix_smooth.loc[d]
+        else:
+            idx = vix_smooth.index.get_indexer([d], method="pad")[0]
+            v = vix_smooth.iloc[idx] if idx >= 0 else None
+        entry["vix"] = round(float(v), 2) if v is not None and pd.notna(v) else None
 
     # Latest US-equity trading date represented in the data. We walk back from
     # the end of SPY's series until its price actually changes — this strips off
