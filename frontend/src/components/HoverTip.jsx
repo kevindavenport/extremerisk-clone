@@ -5,7 +5,7 @@ import "./InfoTip.css"; // reuse the same bubble styles
  * Wraps any children and shows a styled tooltip bubble on hover.
  * Uses position:fixed so it escapes table overflow clipping.
  */
-export default function HoverTip({ children, content }) {
+export default function HoverTip({ children, content, block = false, width = 240 }) {
   const [pos, setPos] = useState(null);
   const wrapRef = useRef(null);
 
@@ -16,20 +16,25 @@ export default function HoverTip({ children, content }) {
 
   const hide = () => setPos(null);
 
+  const Wrap = block ? "div" : "span";
+  const wrapStyle = block
+    ? { display: "block", cursor: "default" }
+    : { display: "inline-flex", alignItems: "center", cursor: "default" };
+
   return (
     <>
-      <span
+      <Wrap
         ref={wrapRef}
         onMouseEnter={show}
         onMouseLeave={hide}
-        style={{ display: "inline-flex", alignItems: "center", cursor: "default" }}
+        style={wrapStyle}
       >
         {children}
-      </span>
+      </Wrap>
       {pos && (
         <div
           className="infotip-bubble"
-          style={{ left: pos.x, top: pos.y, width: 240 }}
+          style={{ left: pos.x, top: pos.y, width }}
         >
           {content}
         </div>

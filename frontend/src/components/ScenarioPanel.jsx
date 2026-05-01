@@ -1,33 +1,156 @@
+import HoverTip from "./HoverTip.jsx";
 import "./ScenarioPanel.css";
 
 const fmt = (iso) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 
-function ContribBar({ ticker, contrib, maxAbs }) {
-  const isGain = contrib >= 0;
-  const width = Math.min(100, (Math.abs(contrib) / maxAbs) * 100);
+const fmtSigned = (n, digits = 1) =>
+  `${n > 0 ? "+" : ""}${n.toFixed(digits)}%`;
+
+
+function ContribTooltip({ ticker, ret, weightPct, contrib }) {
   return (
-    <div className="contrib-row">
-      <span className="contrib-ticker">{ticker}</span>
-      <div className="contrib-track">
-        <div
-          className={`contrib-fill ${isGain ? "gain" : "loss"}`}
-          style={{ width: `${width}%` }}
-        />
+    <div>
+      <div style={{ fontWeight: 600, color: "#ffffff", marginBottom: 4 }}>
+        {ticker}
       </div>
-      <span className={`contrib-ret ${isGain ? "gain" : "loss"}`}>
-        {contrib > 0 ? "+" : ""}{contrib.toFixed(2)}
-      </span>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span style={{ opacity: 0.7 }}>Asset return</span>
+        <span style={{ fontVariantNumeric: "tabular-nums" }}>
+          {fmtSigned(ret, 2)}
+        </span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span style={{ opacity: 0.7 }}>× Weight</span>
+        <span style={{ fontVariantNumeric: "tabular-nums" }}>
+          {weightPct.toFixed(2)}%
+        </span>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginTop: 5,
+          paddingTop: 5,
+          borderTop: "1px solid #2e4460",
+          fontWeight: 600,
+        }}
+      >
+        <span>= Contribution</span>
+        <span style={{ fontVariantNumeric: "tabular-nums" }}>
+          {fmtSigned(contrib, 2)}
+        </span>
+      </div>
     </div>
   );
 }
 
-function ScenarioCard({ s }) {
+
+function ContribBar({ ticker, contrib, ret, weightPct, maxAbs }) {
+  const isGain = contrib >= 0;
+  const width = Math.min(100, (Math.abs(contrib) / maxAbs) * 100);
+
+  return (
+    <HoverTip
+      block
+      width={220}
+      content={
+        <ContribTooltip
+          ticker={ticker}
+          ret={ret}
+          weightPct={weightPct}
+          contrib={contrib}
+        />
+      }
+    >
+      <div className="contrib-row">
+        <span className="contrib-ticker">{ticker}</span>
+        <div className="contrib-track">
+          <div
+            className={`contrib-fill ${isGain ? "gain" : "loss"}`}
+            style={{ width: `${width}%` }}
+          />
+        </div>
+        <span className={`contrib-ret ${isGain ? "gain" : "loss"}`}>
+          {contrib > 0 ? "+" : ""}{contrib.toFixed(2)}
+        </span>
+      </div>
+    </HoverTip>
+  );
+}
+
+
+function ComparisonTooltip({ comparisons, currentMode, currentPnl }) {
+  if (!comparisons) return null;
+  const entries = Object.entries(comparisons).filter(([k]) => k !== currentMode);
+  if (entries.length === 0) return null;
+
+  return (
+    <div>
+      <div
+        style={{
+          fontWeight: 600,
+          color: "#ffffff",
+          marginBottom: 6,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          fontSize: 9,
+        }}
+      >
+        Same scenario, other portfolios
+      </div>
+      {entries.map(([k, v]) => {
+        const delta = v.pnl - currentPnl;
+        const worse = delta < 0;            // more negative = worse
+        const sign = delta > 0 ? "+" : "";
+        return (
+          <div
+            key={k}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+              marginBottom: 2,
+            }}
+          >
+            <span style={{ opacity: 0.85 }}>{v.label}</span>
+            <span style={{ fontVariantNumeric: "tabular-nums" }}>
+              {fmtSigned(v.pnl, 1)}
+              <span
+                style={{
+                  marginLeft: 6,
+                  opacity: 0.55,
+                  fontSize: 9,
+                  color: worse ? "#fca5a5" : "#86efac",
+                }}
+              >
+                ({sign}{Math.abs(delta).toFixed(1)}pp {worse ? "worse" : "better"})
+              </span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+function ScenarioCard({ s, weights, comparisons, currentMode }) {
   const isHypo = s.type === "hypothetical";
-  const isLoss  = s.portfolio_pnl < 0;
+  const isLoss = s.portfolio_pnl < 0;
 
   const sorted = Object.entries(s.contributions).sort((a, b) => a[1] - b[1]);
   const maxAbs = Math.max(...sorted.map(([, v]) => Math.abs(v)));
+
+  // Each ticker's effective weight inside this scenario (re-normalized when
+  // some assets were missing). We back-derive it: weight = contrib / return.
+  const effectiveWeight = (ticker, contrib) => {
+    const ret = s.asset_returns[ticker];
+    if (ret === undefined || ret === 0) return 0;
+    return (contrib / ret) * 100; // both as percent → weight in percent
+  };
+
+  const cardComparisons = comparisons?.[s.id];
 
   return (
     <div className={`scenario-card ${isHypo ? "hypo" : "historical"}`}>
@@ -46,16 +169,35 @@ function ScenarioCard({ s }) {
         <div className="scenario-desc">{s.desc}</div>
       </div>
 
-      <div className={`scenario-pnl ${isLoss ? "loss" : "gain"}`}>
-        {s.portfolio_pnl > 0 ? "+" : ""}{s.portfolio_pnl.toFixed(1)}%
-        <span className="scenario-pnl-label">
-          {isHypo ? "estimated portfolio P&L on $100" : "portfolio P&L on $100"}
-        </span>
-      </div>
+      <HoverTip
+        block
+        width={280}
+        content={
+          <ComparisonTooltip
+            comparisons={cardComparisons}
+            currentMode={currentMode}
+            currentPnl={s.portfolio_pnl}
+          />
+        }
+      >
+        <div className={`scenario-pnl ${isLoss ? "loss" : "gain"}`}>
+          {s.portfolio_pnl > 0 ? "+" : ""}{s.portfolio_pnl.toFixed(1)}%
+          <span className="scenario-pnl-label">
+            {isHypo ? "estimated portfolio P&L on $100" : "portfolio P&L on $100"}
+          </span>
+        </div>
+      </HoverTip>
 
       <div className="contrib-list">
         {sorted.map(([ticker, contrib]) => (
-          <ContribBar key={ticker} ticker={ticker} contrib={contrib} maxAbs={maxAbs} />
+          <ContribBar
+            key={ticker}
+            ticker={ticker}
+            contrib={contrib}
+            ret={s.asset_returns[ticker] ?? 0}
+            weightPct={effectiveWeight(ticker, contrib)}
+            maxAbs={maxAbs}
+          />
         ))}
       </div>
 
@@ -74,13 +216,28 @@ function ScenarioCard({ s }) {
   );
 }
 
-export default function ScenarioPanel({ scenarios }) {
+
+export default function ScenarioPanel({ scenarios, weights, comparisons, currentMode }) {
   if (!scenarios || scenarios.length === 0) return null;
+
+  // Hypothetical (forward-looking) cards first, historical cards second
+  const ordered = [
+    ...scenarios.filter((s) => s.type === "hypothetical"),
+    ...scenarios.filter((s) => s.type !== "hypothetical"),
+  ];
 
   return (
     <div className="scenario-section">
       <div className="scenario-grid">
-        {scenarios.map((s) => <ScenarioCard key={s.id} s={s} />)}
+        {ordered.map((s) => (
+          <ScenarioCard
+            key={s.id}
+            s={s}
+            weights={weights}
+            comparisons={comparisons}
+            currentMode={currentMode}
+          />
+        ))}
       </div>
     </div>
   );

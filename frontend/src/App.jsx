@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import RiskTable from "./components/RiskTable.jsx";
 import HistoricalChart from "./components/HistoricalChart.jsx";
 import CorrelationChart from "./components/CorrelationChart.jsx";
@@ -56,6 +56,20 @@ export default function App() {
   // Active portfolio bundle (assets + scenarios + weights for selected mode)
   const portfolio = data?.portfolios?.[mode];
   const modeKeys = data ? Object.keys(data.portfolios) : [];
+
+  // Pre-compute cross-mode comparison data for each scenario id
+  // (lets the headline P&L hover show "this portfolio vs others")
+  const scenarioComparisons = useMemo(() => {
+    if (!data?.portfolios) return {};
+    const map = {};
+    for (const [key, mode] of Object.entries(data.portfolios)) {
+      for (const s of mode.scenarios ?? []) {
+        if (!map[s.id]) map[s.id] = {};
+        map[s.id][key] = { label: mode.label, pnl: s.portfolio_pnl };
+      }
+    }
+    return map;
+  }, [data]);
 
   return (
     <div className="app">
@@ -145,7 +159,12 @@ export default function App() {
               <span className="section-title">Historical Stress Tests &amp; Scenarios</span>
               <span className="section-desc">How would the active portfolio have performed during major market crises (data-driven), and how might it respond to forward-looking scenarios (assumption-driven)? Each card shows total P&amp;L and which holdings hurt — or helped — the most.</span>
             </div>
-            <ScenarioPanel scenarios={portfolio.scenarios} />
+            <ScenarioPanel
+              scenarios={portfolio.scenarios}
+              weights={portfolio.weights}
+              comparisons={scenarioComparisons}
+              currentMode={mode}
+            />
           </section>
         )}
         {data?.sp500_history && (

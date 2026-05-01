@@ -98,8 +98,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const tickFormatter = (v) => {
   if (v === 0) return "0";
-  if (v < 0) return `${v}% (-$${Math.abs(v)})`;
-  return `$${v} (${v}%)`;
+  if (v < 0) return `${v}%`;
+  return `$${v}`;
 };
 
 export default function HistoricalChart({ data }) {
@@ -138,17 +138,19 @@ export default function HistoricalChart({ data }) {
         <div className="insight-panel">
           <span className="insight-label">💡</span>
           <p>
-            The <span className="ins-blue">blue bars</span> show peak daily VaR for each
+            The <span className="ins-blue">blue bars</span> show peak daily VaR each
             year — the worst single-day loss the model expected, at the 1% confidence
-            level. The <span className="ins-red">red bars</span> show full-year losses
-            for years that ended negative. In <strong>2008</strong>, peak daily VaR
-            reached roughly <strong>15%</strong> by mid-year, well before the year's
-            final <strong>−38%</strong> return had been booked. In March{" "}
-            <strong>2020</strong>, it spiked above <strong>10%</strong> within weeks
-            and fell back under <strong>3%</strong> by September. The model captures
-            regime shifts in real time; annual returns only confirm what has already
-            happened. The amber VIX line — the market's own forward-looking volatility
-            estimate — tends to lead realized risk at major turning points.
+            level. The <span className="ins-red">red bars</span> show full-year returns
+            for years that ended negative. (Both are scaled to a $100 position, so dollar
+            VaR and percent returns are directly comparable — a $15 VaR is the same as a
+            15% loss.) In <strong>2008</strong>, peak daily VaR reached roughly{" "}
+            <strong>15%</strong> by mid-year, well before the year's full{" "}
+            <strong>38%</strong> loss had been booked. In March <strong>2020</strong>,
+            it spiked above <strong>10%</strong> within weeks and fell back under{" "}
+            <strong>3%</strong> by September. The model captures regime shifts in real
+            time; annual returns only confirm what has already happened. The amber VIX
+            line — the market's own forward-looking volatility estimate — tends to lead
+            realized risk at major turning points.
           </p>
         </div>
       )}
@@ -176,7 +178,7 @@ export default function HistoricalChart({ data }) {
               tickLine={false}
               axisLine={false}
               tickFormatter={tickFormatter}
-              width={88}
+              width={36}
             />
             <YAxis
               yAxisId="vix"
