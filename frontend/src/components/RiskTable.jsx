@@ -5,20 +5,20 @@ import "./RiskTable.css";
 
 const TIPS = {
   ret:       "Yesterday's log return for this asset.",
-  varHs:     "Historical Simulation VaR — the 1% worst daily loss drawn directly from the last 1000 trading days. No distribution assumption.",
-  varEwma:   "EWMA VaR — normal distribution VaR using exponentially weighted volatility (λ=0.94). Recent days get more weight than older ones.",
-  varGarch:  "GARCH(1,1) VaR — like EWMA but uses a GARCH model to forecast tomorrow's volatility. Falls back to EWMA if fitting fails.",
-  varTgarch: "GJR-GARCH VaR — asymmetric GARCH that gives extra weight to negative return shocks. Better captures the 'volatility is higher after crashes' effect.",
-  varEvt:    "Extreme Value Theory VaR — fits a Generalized Pareto Distribution to the worst losses. Best for fat-tailed assets like crypto.",
-  esEwma:    "Expected Shortfall (CVaR) — the average loss on the worst 1% of days. Always larger than VaR; a better measure of tail risk.",
-  consensus: "Simple average across all five VaR models. A rough consensus proxy — useful as a single reference number but not a coherent risk measure. Treat it as a heuristic, not a precise estimate.",
+  hs:        "Historical Simulation. Top number = VaR (1% worst daily loss). Bottom number = ES (average loss across the worst 1%). Both drawn directly from the last 1000 trading days; no distribution assumption.",
+  ewma:      "EWMA model. Top = VaR; bottom = ES. Computed with exponentially weighted volatility (λ=0.94) under a normal-distribution assumption. Recent days weigh more than older ones.",
+  garch:     "GARCH(1,1) model. Top = VaR; bottom = ES. Forecasts tomorrow's volatility from a mean-reverting GARCH process. Falls back to EWMA if fitting fails.",
+  tgarch:    "GJR-tGARCH model. Top = VaR; bottom = ES. Asymmetric volatility — negative return shocks weigh more heavily, capturing 'volatility is higher after crashes.'",
+  evt:       "Extreme Value Theory. Top = VaR; bottom = ES. Fits a Generalized Pareto Distribution directly to the worst losses; best for fat-tailed assets like crypto.",
+  consensus: "Simple average across all five VaR models. A rough consensus proxy — useful as a single reference number but not a coherent risk measure. Treat it as a heuristic.",
   range:     "Range across all five VaR models (min – max). When tight, the models agree and standard assumptions hold. When wide — usually EVT pulling high — the asset's tail losses are more extreme than normal-distribution models capture. That gap is a warning, not noise.",
   alpha:     "Hill tail index — estimated from the worst losses. Lower = fatter tails. Broad equity indices typically 3–4; individual stocks 2–4; gold and crypto often below 3; long treasuries can be surprisingly fat-tailed.",
   risk:      "Percentile rank of today's EWMA VaR vs the past 2 years of daily values for this asset. 100% = highest risk seen in 2 years.",
   compVar:   "Component VaR — this holding's contribution to the total portfolio VaR (parametric, EWMA covariance). Sum across all holdings equals the portfolio's EWMA VaR. Negative values indicate hedges (the holding's covariance with the rest of the portfolio reduces total risk).",
 };
 
-// Map column key → value extractor for sorting
+// Map column key → value extractor for sorting (model columns sort by VaR;
+// ES is shown alongside in each cell but isn't independently sortable)
 const SORT_FNS = {
   name:      (a) => a.name,
   price:     (a) => a.last_price,
@@ -28,7 +28,6 @@ const SORT_FNS = {
   varGarch:  (a) => a.var_garch,
   varTgarch: (a) => a.var_tgarch,
   varEvt:    (a) => a.var_evt,
-  esEwma:    (a) => a.es_ewma,
   consensus: (a) => a.mean_var,
   range:     (a) => (Math.max(a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt) - Math.min(a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt)),
   alpha:     (a) => a.tail_index,
@@ -100,6 +99,20 @@ function VarCell({ value, className }) {
   return <td className={`num ${className ?? ""}`} style={{ color }}>{value.toFixed(2)}</td>;
 }
 
+// Paired cell — shows VaR (top, color-coded) and ES (bottom, smaller and dim).
+// Used for the 5 model columns so each forecast carries both summary stats.
+function VarEsCell({ varValue, esValue, className }) {
+  let color = "var(--green)";
+  if (varValue > 5) color = "var(--red)";
+  else if (varValue > 2.5) color = "var(--yellow)";
+  return (
+    <td className={`num model-cell ${className ?? ""}`}>
+      <div className="model-var" style={{ color }}>{varValue.toFixed(2)}</div>
+      {esValue != null && <div className="model-es">{esValue.toFixed(2)}</div>}
+    </td>
+  );
+}
+
 function CompVarCell({ value, className }) {
   if (value == null) {
     return <td className={`num text-dim ${className ?? ""}`}>—</td>;
@@ -149,12 +162,11 @@ function PortfolioRow({ a, portfolioLabel }) {
         <span className="portfolio-nav" title="Synthetic NAV starting at $100">NAV ${a.nav?.toFixed(2) ?? a.last_price.toFixed(2)}</span>
       </td>
       <ReturnCell value={a.last_return_pct} className="portfolio-cell" />
-      <VarCell value={a.var_hs}      className="portfolio-cell col-models group-start" />
-      <VarCell value={a.var_ewma}    className="portfolio-cell col-models" />
-      <VarCell value={a.var_garch}   className="portfolio-cell col-models" />
-      <VarCell value={a.var_tgarch}  className="portfolio-cell col-models" />
-      <VarCell value={a.var_evt}     className="portfolio-cell col-models group-end" />
-      <VarCell value={a.es_ewma}     className="portfolio-cell" />
+      <VarEsCell varValue={a.var_hs}      esValue={a.es_hs}      className="portfolio-cell col-models group-start" />
+      <VarEsCell varValue={a.var_ewma}    esValue={a.es_ewma}    className="portfolio-cell col-models" />
+      <VarEsCell varValue={a.var_garch}   esValue={a.es_garch}   className="portfolio-cell col-models" />
+      <VarEsCell varValue={a.var_tgarch}  esValue={a.es_tgarch}  className="portfolio-cell col-models" />
+      <VarEsCell varValue={a.var_evt}     esValue={a.es_evt}     className="portfolio-cell col-models group-end" />
       <td className="num alpha-cell portfolio-cell">{a.tail_index?.toFixed(2)}</td>
       <td className="left gauge-cell portfolio-cell">
         <RiskBar
@@ -210,13 +222,12 @@ export default function RiskTable({ assets, portfolioWeights, portfolioLabel }) 
             <Th col="name"  label="Asset"   className="left sticky-col" {...sp} />
             <Th col="price" label="Price"   className="num" {...sp} />
             <ThWithTip col="ret"       label="1d Ret%"    tip={TIPS.ret}       className="num" {...sp} />
-            <ThWithTip col="varHs"     label="VaR HS"     tip={TIPS.varHs}     className="num col-models group-start" {...sp} />
-            <ThWithTip col="varEwma"   label="VaR EWMA"   tip={TIPS.varEwma}   className="num col-models" {...sp} />
-            <ThWithTip col="varGarch"  label="VaR GARCH"  tip={TIPS.varGarch}  className="num col-models" {...sp} />
-            <ThWithTip col="varTgarch" label="VaR tGARCH" tip={TIPS.varTgarch} className="num col-models" {...sp} />
-            <ThWithTip col="varEvt"    label="VaR EVT"    tip={TIPS.varEvt}    className="num col-models group-end" {...sp} />
-            <ThWithTip col="esEwma"    label="ES EWMA"    tip={TIPS.esEwma}    className="num" {...sp} />
-            <ThWithTip col="alpha"     label={<span style={{textTransform:"none"}}>α tail</span>} tip={TIPS.alpha} className="num" {...sp} />
+            <ThWithTip col="varHs"     label="HS"     tip={TIPS.hs}     className="num col-models group-start" {...sp} />
+            <ThWithTip col="varEwma"   label="EWMA"   tip={TIPS.ewma}   className="num col-models" {...sp} />
+            <ThWithTip col="varGarch"  label="GARCH"  tip={TIPS.garch}  className="num col-models" {...sp} />
+            <ThWithTip col="varTgarch" label="tGARCH" tip={TIPS.tgarch} className="num col-models" {...sp} />
+            <ThWithTip col="varEvt"    label="EVT"    tip={TIPS.evt}    className="num col-models group-end" {...sp} />
+            <ThWithTip col="alpha"     label={<span style={{textTransform:"none"}}>Tail α</span>} tip={TIPS.alpha} className="num" {...sp} />
             <ThWithTip col="risk"      label="Risk"       tip={TIPS.risk}      className="left" {...sp} />
             <ThWithTip col="consensus" label="Consensus"  tip={TIPS.consensus} className="num col-summary group-start" {...sp} />
             <ThWithTip col="range"     label="Range"      tip={TIPS.range}     className="num col-summary" {...sp} />
@@ -237,12 +248,11 @@ export default function RiskTable({ assets, portfolioWeights, portfolioLabel }) 
               </td>
               <td className="num price">${a.last_price.toLocaleString()}</td>
               <ReturnCell value={a.last_return_pct} />
-              <VarCell value={a.var_hs}      className="col-models group-start" />
-              <VarCell value={a.var_ewma}    className="col-models" />
-              <VarCell value={a.var_garch}   className="col-models" />
-              <VarCell value={a.var_tgarch}  className="col-models" />
-              <VarCell value={a.var_evt}     className="col-models group-end" />
-              <VarCell value={a.es_ewma} />
+              <VarEsCell varValue={a.var_hs}      esValue={a.es_hs}      className="col-models group-start" />
+              <VarEsCell varValue={a.var_ewma}    esValue={a.es_ewma}    className="col-models" />
+              <VarEsCell varValue={a.var_garch}   esValue={a.es_garch}   className="col-models" />
+              <VarEsCell varValue={a.var_tgarch}  esValue={a.es_tgarch}  className="col-models" />
+              <VarEsCell varValue={a.var_evt}     esValue={a.es_evt}     className="col-models group-end" />
               <td className="num alpha-cell">{a.tail_index?.toFixed(2)}</td>
               <td className="left gauge-cell">
                 <RiskBar

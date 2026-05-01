@@ -81,6 +81,27 @@
 .risk-table td.num   { text-align: right; font-variant-numeric: tabular-nums; }
 .risk-table td.center { text-align: center; }
 
+/* Paired VaR/ES cell — VaR on top (color-coded), ES below (smaller, dim).
+   Each model column shows both summary statistics from the same model. */
+.risk-table td.model-cell {
+  line-height: 1.15;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.model-var {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-es {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
 /* Column groups — subtle tints to visually cluster related metrics. The
    tints use rgba so row hover (var(--bg3)) still shows through. */
 .risk-table th.col-models,
