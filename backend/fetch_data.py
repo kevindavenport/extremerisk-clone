@@ -6,7 +6,7 @@ import numpy as np
 
 TICKERS = [
     "SPY", "QQQ", "GLD", "TLT", "EEM", "BTC-USD",
-    "IWM", "HYG", "LQD", "XLF", "VNQ", "CGUS",
+    "IWM", "HYG", "LQD", "XLF", "VNQ",
 ]
 
 NAMES = {
@@ -21,7 +21,6 @@ NAMES = {
     "LQD":    "Investment Grade Bond ETF",
     "XLF":    "Financial Sector ETF",
     "VNQ":    "Real Estate ETF",
-    "CGUS":   "Capital Group Core Equity ETF",
 }
 
 # Underlying holdings of Vanguard Target Retirement 2055 (VFFVX),

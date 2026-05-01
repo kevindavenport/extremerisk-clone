@@ -153,7 +153,7 @@
 .mode-toggle {
   display: flex;
   gap: 4px;
-  background: var(--bg3);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 3px;
@@ -161,9 +161,9 @@
 }
 
 .mode-btn {
-  background: none;
-  border: none;
-  color: var(--text-dim);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
   font-family: var(--font);
   font-size: 11px;
   font-weight: 500;
@@ -171,16 +171,19 @@
   border-radius: 3px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .mode-btn:hover {
+  background: var(--border);
   color: var(--text-bright);
+  border-color: var(--accent);
 }
 
 .mode-btn.active {
   background: var(--accent);
   color: #ffffff;
+  border-color: var(--accent);
   font-weight: 600;
 }
 

@@ -14,25 +14,26 @@ from fetch_data import (
 )
 from risk_engine import (
     compute_asset_risk, compute_sp500_history, compute_rolling_correlation,
-    compute_scenarios, compute_hypothetical_scenarios, CORR_TICKERS,
+    compute_scenarios, compute_hypothetical_scenarios,
+    compute_portfolio_risk_history, compute_component_var,
+    backtest_portfolio_var, CORR_TICKERS,
 )
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "data", "risk_output.json")
 
 # ---------------------------------------------------------------------------
 # Hypothetical blended portfolio weights (must sum to 1.0)
-#   Equity  60%: SPY 25, QQQ 12, EEM 8, IWM 7, XLF 5, CGUS 3
+#   Equity  60%: SPY 28, QQQ 12, EEM 8, IWM 7, XLF 5
 #   Fixed Income 30%: TLT 10, LQD 12, HYG 8
 #   Real Assets  8%: GLD 5, VNQ 3
 #   Crypto       2%: BTC-USD 2
 # ---------------------------------------------------------------------------
 HYPOTHETICAL_WEIGHTS = {
-    "SPY":     0.25,
+    "SPY":     0.28,
     "QQQ":     0.12,
     "EEM":     0.08,
     "IWM":     0.07,
     "XLF":     0.05,
-    "CGUS":    0.03,
     "TLT":     0.10,
     "LQD":     0.12,
     "HYG":     0.08,
@@ -80,7 +81,7 @@ CG_2055_WEIGHTS = {
 PORTFOLIO_MODES = {
     "hypothetical": {
         "label":       "Hypothetical Portfolio",
-        "description": "An illustrative diversified mix: 60% equity, 30% fixed income, 8% real assets, 2% crypto. Built from 12 sector and asset-class ETFs.",
+        "description": "An illustrative diversified mix: 60% equity, 30% fixed income, 8% real assets, 2% crypto. Built from 11 sector and asset-class ETFs.",
         "tickers":     TICKERS,
         "names":       NAMES,
         "weights":     HYPOTHETICAL_WEIGHTS,
@@ -159,6 +160,17 @@ def compute_mode(prices_10y: pd.DataFrame, returns_10y: pd.DataFrame,
     port_row = compute_portfolio_row(returns_10y, weights, mode_cfg["name"])
     assets.append(port_row)
 
+    # Component VaR — each holding's contribution to portfolio VaR (sums to total)
+    print("  Computing component VaR...")
+    comp_var = compute_component_var(prices_long, weights)
+    portfolio_total_comp = sum(comp_var.values()) if comp_var else 0.0
+    for asset in assets:
+        if asset["ticker"] in comp_var:
+            asset["component_var"] = comp_var[asset["ticker"]]
+    # Annotate the portfolio row with the total (= portfolio EWMA VaR by construction)
+    if comp_var and assets and assets[-1].get("is_portfolio"):
+        assets[-1]["component_var_total"] = round(float(portfolio_total_comp), 4)
+
     # Scenarios — historical (data-driven) + hypothetical (shock-driven)
     print("  Computing scenarios...")
     hist = compute_scenarios(prices_long, weights)
@@ -167,12 +179,24 @@ def compute_mode(prices_10y: pd.DataFrame, returns_10y: pd.DataFrame,
     hypo = compute_hypothetical_scenarios(weights)
     scenarios = hist + hypo
 
+    # Portfolio risk trajectory — daily EWMA VaR over full available history.
+    # Pass raw prices so the function can compute returns over only this
+    # portfolio's tickers (avoids truncation by unrelated short-history names).
+    print("  Computing portfolio risk history...")
+    risk_history = compute_portfolio_risk_history(prices_long, weights)
+
+    # Backtesting — Kupiec UC + Christoffersen IC tests over last 504 days
+    print("  Backtesting VaR models on portfolio (504-day eval, 1000-day lookback)...")
+    backtests = backtest_portfolio_var(prices_long, weights)
+
     return {
-        "label":       mode_cfg["label"],
-        "description": mode_cfg["description"],
-        "weights":     weights,
-        "assets":      assets,
-        "scenarios":   scenarios,
+        "label":        mode_cfg["label"],
+        "description":  mode_cfg["description"],
+        "weights":      weights,
+        "assets":       assets,
+        "scenarios":    scenarios,
+        "risk_history": risk_history,
+        "backtests":    backtests,
     }
 
 

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from scipy.stats import norm, genpareto
+from scipy.stats import norm, genpareto, chi2
 from arch import arch_model
 
 WINDOW = 1000
@@ -170,9 +170,49 @@ def compute_sp500_history(returns: pd.Series, prices: pd.Series, vix: pd.Series 
 
 
 # Tickers with sufficient history for the cross-asset correlation chart.
-# Excludes CGUS (launched 2022) and BTC-USD (launched 2014) so the series
-# starts ~2007 and captures the GFC.
+# Excludes BTC-USD (launched 2014) so the series starts ~2007 and captures the GFC.
 CORR_TICKERS = ["SPY", "QQQ", "GLD", "TLT", "EEM", "IWM", "HYG", "LQD", "XLF", "VNQ"]
+
+
+def compute_portfolio_risk_history(
+    prices: pd.DataFrame,
+    weights: dict,
+    sample_every: int = 5,
+) -> list[dict]:
+    """
+    Daily EWMA VaR of the active portfolio over time, sampled weekly.
+
+    Builds the weighted portfolio return series from the available tickers
+    in `weights`, runs the same daily EWMA VaR computation we use elsewhere,
+    and downsamples to keep the JSON manageable.
+
+    Takes raw `prices` (not pre-computed returns) so we can compute log
+    returns over only the portfolio's tickers — otherwise an unrelated
+    short-history ticker (e.g. BTC-USD, launched 2014) would truncate the
+    series even when the active portfolio doesn't include it.
+    """
+    avail = [t for t in weights if t in prices.columns]
+    if not avail:
+        return []
+
+    raw_w  = np.array([weights[t] for t in avail])
+    norm_w = raw_w / raw_w.sum()  # re-normalize if some tickers missing
+
+    # Compute log returns over only the portfolio's tickers, then drop rows
+    # where any of them are missing (preserves max history for each portfolio)
+    sub_prices = prices[avail].dropna()
+    if len(sub_prices) < 2:
+        return []
+    ret_df = np.log(sub_prices / sub_prices.shift(1)).dropna()
+
+    port_rets = pd.Series(ret_df.values @ norm_w, index=ret_df.index)
+    daily_var = compute_daily_ewma_var(port_rets).dropna()
+
+    sampled = daily_var.iloc[::sample_every]
+    return [
+        {"date": idx.strftime("%Y-%m-%d"), "var": round(float(v), 3)}
+        for idx, v in sampled.items()
+    ]
 
 
 def compute_rolling_correlation(returns: pd.DataFrame, window: int = 60, sample_every: int = 5) -> list[dict]:
@@ -351,7 +391,6 @@ HYPOTHETICAL_SCENARIOS = [
             "LQD":     +0.02,
             "XLF":     -0.11,
             "VNQ":     -0.10,
-            "CGUS":    -0.15,
             # TDF underlying holdings
             "VTI":     -0.15,   # US total market
             "VXUS":    -0.20,   # intl total — heavier Asia weight
@@ -388,7 +427,6 @@ HYPOTHETICAL_SCENARIOS = [
             "LQD":     +0.01,
             "XLF":     -0.08,
             "VNQ":     -0.07,
-            "CGUS":    -0.09,
             # TDF underlying holdings
             "VTI":     -0.09,
             "VXUS":    -0.11,   # intl exposure to oil shock
@@ -425,7 +463,6 @@ HYPOTHETICAL_SCENARIOS = [
             "LQD":     +0.04,
             "XLF":     -0.30,   # financials crater
             "VNQ":     -0.22,
-            "CGUS":    -0.28,
             # TDF underlying holdings
             "VTI":     -0.28,
             "VXUS":    -0.24,   # global recession spillover
@@ -462,7 +499,6 @@ HYPOTHETICAL_SCENARIOS = [
             "LQD":     +0.02,
             "XLF":     -0.14,
             "VNQ":     -0.08,
-            "CGUS":    -0.18,
             # TDF underlying holdings
             "VTI":     -0.18,   # broad market, includes AI exposure
             "VXUS":    -0.10,   # less direct AI concentration
@@ -518,8 +554,8 @@ def compute_hypothetical_scenarios(weights: dict) -> list[dict]:
 def compute_scenarios(prices: pd.DataFrame, weights: dict) -> list[dict]:
     """
     For each historical scenario, compute portfolio and per-asset total returns
-    over the scenario date range. Missing tickers (e.g. BTC pre-2014, CGUS pre-2022)
-    are excluded and weights re-normalized so the portfolio return is still meaningful.
+    over the scenario date range. Missing tickers (e.g. BTC pre-2014) are
+    excluded and weights re-normalized so the portfolio return is still meaningful.
     """
     results = []
 
@@ -575,6 +611,231 @@ def compute_scenarios(prices: pd.DataFrame, weights: dict) -> list[dict]:
             "coverage_pct":     round(total_w * 100, 1),
             "asset_returns":    {t: round(v * 100, 2) for t, v in asset_returns.items()},
             "contributions":    contributions,
+        })
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Component VaR (risk attribution)
+# ---------------------------------------------------------------------------
+
+def compute_component_var(
+    prices: pd.DataFrame,
+    weights: dict,
+    p: float = P,
+    lam: float = 0.94,
+    window: int = WINDOW,
+) -> dict:
+    """
+    Component VaR per asset using an EWMA covariance matrix.
+
+    Sum of component VaRs across all holdings equals the portfolio's
+    parametric (EWMA) VaR — so each component value answers
+    "how much of today's portfolio VaR comes from this asset?"
+
+    Negative component VaR indicates a hedge (an asset whose covariance
+    with the rest of the portfolio reduces total risk).
+
+    Standard formula:
+        Component VaR_i = w_i × (Σ w)_i / σ_p × z × portfolio_value
+        where Σ is the EWMA covariance matrix of returns.
+    """
+    avail = [t for t in weights if t in prices.columns]
+    if len(avail) < 2:
+        return {}
+
+    raw_w  = np.array([weights[t] for t in avail])
+    norm_w = raw_w / raw_w.sum()
+
+    # Log returns over only the portfolio's tickers (preserves max history)
+    sub = prices[avail].dropna()
+    if len(sub) < 30:
+        return {}
+    ret_df = np.log(sub / sub.shift(1)).dropna()
+    if len(ret_df) < 30:
+        return {}
+
+    R = ret_df.iloc[-window:].values  # T x N
+
+    # EWMA covariance: cov_t = (1-λ) r r' + λ cov_{t-1}
+    cov = np.cov(R.T)  # initial estimate from sample covariance
+    for r in R:
+        r_col = r.reshape(-1, 1)
+        cov = (1 - lam) * (r_col @ r_col.T) + lam * cov
+
+    portfolio_var = float(norm_w @ cov @ norm_w)
+    if portfolio_var <= 0:
+        return {}
+    portfolio_sigma = np.sqrt(portfolio_var)
+    z = norm.ppf(1 - p)
+
+    cov_w    = cov @ norm_w
+    comp_var = norm_w * cov_w / portfolio_sigma * z * PORTFOLIO_VALUE
+
+    return {avail[i]: round(float(comp_var[i]), 4) for i in range(len(avail))}
+
+
+# ---------------------------------------------------------------------------
+# Backtesting (Kupiec UC + Christoffersen independence)
+# ---------------------------------------------------------------------------
+
+def kupiec_uc_test(violations: int, total: int, p: float = P) -> dict:
+    """
+    Kupiec unconditional coverage test.
+    Null: actual exception rate equals expected rate p.
+    LR statistic ~ χ²(1) under the null. p-value > 0.05 → fail to reject (model PASSES).
+    """
+    if total == 0:
+        return {"stat": None, "p_value": None}
+
+    p_hat = violations / total
+
+    if violations == 0:
+        lr = -2 * total * np.log(1 - p)
+    elif violations == total:
+        lr = -2 * total * np.log(p)
+    else:
+        lr = -2 * (
+            (total - violations) * np.log((1 - p) / (1 - p_hat)) +
+            violations * np.log(p / p_hat)
+        )
+
+    p_value = 1 - chi2.cdf(lr, df=1)
+    return {"stat": round(float(lr), 3), "p_value": round(float(p_value), 4)}
+
+
+def christoffersen_ind_test(violations: np.ndarray) -> dict:
+    """
+    Christoffersen independence test.
+    Null: VaR violations are independent (no clustering).
+    Two-state Markov chain on violation indicator. LR ~ χ²(1) under the null.
+    """
+    if len(violations) < 2:
+        return {"stat": None, "p_value": None}
+
+    v = np.asarray(violations, dtype=int)
+
+    n00 = int(np.sum((v[:-1] == 0) & (v[1:] == 0)))
+    n01 = int(np.sum((v[:-1] == 0) & (v[1:] == 1)))
+    n10 = int(np.sum((v[:-1] == 1) & (v[1:] == 0)))
+    n11 = int(np.sum((v[:-1] == 1) & (v[1:] == 1)))
+
+    if (n00 + n01) == 0 or (n10 + n11) == 0:
+        # Not enough transitions to test (e.g. zero violations)
+        return {"stat": None, "p_value": None}
+
+    p01  = n01 / (n00 + n01)
+    p11  = n11 / (n10 + n11)
+    p_uc = (n01 + n11) / max(1, n00 + n01 + n10 + n11)
+
+    eps = 1e-12  # avoid log(0)
+
+    log_l_null = (
+        (n00 + n10) * np.log(max(eps, 1 - p_uc)) +
+        (n01 + n11) * np.log(max(eps, p_uc))
+    )
+    log_l_alt = (
+        n00 * np.log(max(eps, 1 - p01)) +
+        n01 * np.log(max(eps, p01)) +
+        n10 * np.log(max(eps, 1 - p11)) +
+        n11 * np.log(max(eps, p11))
+    )
+
+    lr = -2 * (log_l_null - log_l_alt)
+    p_value = 1 - chi2.cdf(lr, df=1)
+    return {"stat": round(float(lr), 3), "p_value": round(float(p_value), 4)}
+
+
+def backtest_portfolio_var(
+    prices: pd.DataFrame,
+    weights: dict,
+    eval_window: int = 504,
+    lookback: int = WINDOW,
+    p: float = P,
+) -> list[dict]:
+    """
+    Backtest HS, EWMA, and EVT VaR models against the active portfolio's
+    daily return series over the most recent `eval_window` trading days.
+
+    For each day in the eval window, the VaR forecast is computed using the
+    prior `lookback` returns (so it's strictly out-of-sample). Then the
+    actual loss is compared to the forecast.
+
+    GARCH/tGARCH are not included because they require iterative MLE refits
+    on each window — too expensive to recompute daily on a routine run.
+    """
+    avail = [t for t in weights if t in prices.columns]
+    if len(avail) < 2:
+        return []
+
+    raw_w  = np.array([weights[t] for t in avail])
+    norm_w = raw_w / raw_w.sum()
+
+    sub = prices[avail].dropna()
+    if len(sub) < eval_window + lookback + 10:
+        return []
+
+    ret_df = np.log(sub / sub.shift(1)).dropna()
+    port_rets = ret_df.values @ norm_w
+    if len(port_rets) < eval_window + lookback:
+        return []
+
+    # Restrict to last (lookback + eval_window) so the rolling backtest is fast
+    rets_arr = port_rets[-(lookback + eval_window):]
+
+    hs_var   = np.zeros(eval_window)
+    ewma_var = np.zeros(eval_window)
+    evt_var  = np.zeros(eval_window)
+
+    for i in range(eval_window):
+        window_rets = rets_arr[i:i + lookback]
+        hs_v,   _ = var_es_hs(window_rets, p)
+        ewma_v, _ = var_es_ewma(window_rets, p)
+        evt_v,  _ = var_es_evt(window_rets, p)
+        hs_var[i]   = hs_v
+        ewma_var[i] = ewma_v
+        evt_var[i]  = evt_v
+
+    actual_loss = -rets_arr[-eval_window:] * PORTFOLIO_VALUE
+    expected = eval_window * p
+
+    results = []
+    for name, var_arr in [("HS", hs_var), ("EWMA", ewma_var), ("EVT", evt_var)]:
+        violations = (actual_loss > var_arr).astype(int)
+        n_v  = int(violations.sum())
+        rate = n_v / eval_window
+
+        kupiec = kupiec_uc_test(n_v, eval_window, p)
+        christ = christoffersen_ind_test(violations)
+
+        kp = kupiec.get("p_value")
+        cp = christ.get("p_value")
+
+        # Directional verdict — names HOW a model is mis-calibrated rather
+        # than collapsing all failure modes into a single FAIL flag.
+        alpha = 0.05
+        kupiec_reject = kp is not None and kp < alpha
+        christ_reject = cp is not None and cp < alpha
+
+        if kupiec_reject and rate > p:
+            verdict = "UNDER-EST"      # exception rate too high — model misses tails
+        elif kupiec_reject and rate < p:
+            verdict = "OVER-CONSERV"   # exception rate too low — model too pessimistic
+        elif christ_reject:
+            verdict = "CLUSTERED"      # rate fine but exceptions bunch together
+        else:
+            verdict = "CALIBRATED"     # both tests pass — model is well-calibrated
+
+        results.append({
+            "model":            name,
+            "exceptions":       n_v,
+            "expected":         round(expected, 1),
+            "rate_pct":         round(rate * 100, 2),
+            "expected_pct":     round(p * 100, 2),
+            "kupiec_p":         kp,
+            "christoffersen_p": cp,
+            "verdict":          verdict,
         })
 
     return results

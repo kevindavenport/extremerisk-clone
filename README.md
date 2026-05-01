@@ -47,7 +47,6 @@ All price data is fetched via **[yfinance](https://github.com/ranaroussi/yfinanc
 | LQD | Investment Grade Bond ETF | iShares, US IG corporate bonds |
 | XLF | Financial Sector ETF | SPDR, US financials |
 | VNQ | Real Estate ETF | Vanguard, US REITs |
-| CGUS | Capital Group Core Equity ETF | Active ETF, launched Feb 2022 — shorter history |
 
 ### How data is fetched
 

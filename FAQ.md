@@ -38,7 +38,7 @@ Because that's how they're actually built. Vanguard's TDF holds 4 broad passive 
 Two reasons. (1) We'd lose the per-asset breakdown — the contribution bars in the stress tests would be one bar each, which is much less informative. (2) Mutual fund tickers report a single daily NAV, so we couldn't show why a fund moved on a given day. By modeling the underlying holdings directly, we can attribute portfolio P&L back to which holdings drove it.
 
 **Are the scenarios computed using the same date ranges across modes?**
-Yes for historical scenarios. The stress test for the GFC always uses the same date range (Sep 15, 2008 to Mar 9, 2009) — what changes between modes is which tickers are weighted into the portfolio. Some tickers didn't exist during all scenarios (BTC pre-2014, CGUS pre-2022) — the engine excludes them and re-normalizes weights, with a note on the card showing what % of weight was covered.
+Yes for historical scenarios. The stress test for the GFC always uses the same date range (Sep 15, 2008 to Mar 9, 2009) — what changes between modes is which tickers are weighted into the portfolio. Some tickers didn't exist during all scenarios (BTC-USD pre-2014, BNDX pre-2013) — the engine excludes them and re-normalizes weights, with a note on the card showing what % of weight was covered.
 
 
 ## The risk table
@@ -79,6 +79,46 @@ A day where the actual loss exceeded what the VaR model predicted. At 1% confide
 **What is the bottom row labeled "HYPOTHETICAL PORTFOLIO" (or the active mode's name)?**
 The portfolio summary row. It's not an individual asset — it's the result of running all five VaR models on the daily weighted portfolio return series. The diversification benefit is visible directly: portfolio VaR is meaningfully lower than the weighted average of individual VaRs because correlated holdings offset each other. The "Range" column tells you how much the models agree on the portfolio's tail behavior.
 
+**What is the Comp VaR column?**
+Component VaR — each holding's contribution to the portfolio's total daily VaR. Computed using an EWMA covariance matrix of returns: `Component VaR_i = w_i × (Σw)_i / σ_p × z × portfolio_value`. The numbers sum to the portfolio's parametric (EWMA) VaR shown on the bottom row, which is why the bottom row shows it as `Σ X.XX`. Reading it: a +0.41 means SPY contributes $0.41 of the portfolio's daily VaR. A negative number means the holding is acting as a hedge — its covariance with the rest of the portfolio actually reduces total risk. This decomposition is what professional risk teams actually use to size positions and decide what to trim or add.
+
+**Why does Comp VaR sometimes show a hedge (negative number) and sometimes not?**
+It depends on each holding's covariance with the rest of the portfolio. In the hypothetical portfolio, TLT and GLD often show as hedges (negative component VaR) because they're typically negatively correlated with equity holdings — when stocks fall, treasuries and gold rally, reducing portfolio risk. But in 2022, those same assets fell *with* equities, so their component VaR turned positive temporarily. The contribution is regime-dependent.
+
+**Doesn't the sum of component VaRs differ from the portfolio EWMA VaR shown in the row?**
+It shouldn't — the math is constructed so they match exactly. Sum of components = `Σ_i w_i × (Σw)_i / σ_p × z = (w'Σw) / σ_p × z = σ_p × z` = portfolio VaR. If you see a discrepancy on screen it's at most a rounding difference (we round to 4 decimal places before summing).
+
+
+## Model validation (backtesting)
+
+**What is the Model Validation panel showing?**
+For the active portfolio's daily return series, we backtest three of the five VaR models — HS, EWMA, and EVT — over the most recent **504 trading days** (~2 years). For each day in that evaluation window the model is given only the prior **1000 days** to forecast that day's 1% VaR (strict out-of-sample). We then count how many days the actual loss exceeded the forecast and run two statistical tests on the result.
+
+**What is the Kupiec test?**
+The Kupiec unconditional coverage test asks: *does the model's actual exception rate match the expected 1%?* The null hypothesis is that the rates are equal; the test returns a likelihood-ratio statistic distributed χ²(1) under the null. A p-value above 0.05 means we fail to reject the null — the rate is statistically consistent with 1%. A p-value at or below 0.05 means the rate is statistically distinguishable from 1%, and the verdict column tells you the *direction* (rate too high or too low).
+
+**What is the Christoffersen test?**
+The Christoffersen independence test asks: *do exceptions cluster?* Even if a model's overall exception rate is correct, it can still misbehave if violations bunch together (e.g. five exceptions in five consecutive days followed by no violations for a year). That's a sign of time-varying volatility that the model isn't capturing. The test uses a two-state Markov chain on the violation indicator and returns LR ~ χ²(1). A p-value above 0.05 means no clustering detected. Below 0.05 means we have evidence that exceptions are not independent.
+
+**What do the four verdict labels mean?**
+The verdict column names *how* a model is mis-calibrated, not just whether it "fails" something:
+- **CALIBRATED** — both tests pass. The model's exception rate is statistically consistent with 1% and exceptions appear independently. This is the well-behaved case.
+- **UNDER-EST** — exception rate is significantly *above* 1%. The model is missing tails. The dashboard's most likely diagnostic role here is "weight EVT-style estimates more heavily in this regime."
+- **OVER-CONSERV** — exception rate is significantly *below* 1%. The model is too pessimistic — it forecasts losses that don't materialize. From a risk-management standpoint that's a "safe" failure mode (you're prepared for events that don't happen) but it's still calibration drift worth knowing about.
+- **CLUSTERED** — overall rate may be fine but exceptions group together rather than appearing independently. A sign that the model isn't capturing time-varying volatility.
+
+**Why does EWMA usually show UNDER-EST?**
+EWMA's exception rate is consistently around 2.5–3% in the backtests versus the expected 1%. This is a well-known limitation: EWMA assumes returns are normally distributed, but real return distributions have fatter tails than normal. When a true 5σ event happens, normal-distribution VaR has already been blown through. This is why our table also shows EVT VaR — it captures the tail directly. EWMA showing UNDER-EST while HS shows CALIBRATED is exactly what the literature predicts, and is the reason we display all five models rather than picking one.
+
+**Why does EVT usually show OVER-CONSERV?**
+EVT typically over-shoots — its exception rate is closer to 0–0.2% versus the 1% target. The Generalized Pareto fit to the worst-loss tail produces VaR estimates that are pessimistic enough that real losses rarely exceed them. That's a feature for risk management (you're prepared for tail events) but a statistical failure for calibration testing. Combine EVT with EWMA and HS to get a fuller picture: EWMA gives you the "baseline" rate, HS gives you the empirical reality, EVT gives you the conservative tail bound.
+
+**Why aren't GARCH and tGARCH backtested?**
+Both require iterative maximum-likelihood re-fits on each rolling window, which is too computationally expensive on a routine daily run (~50 minutes for the full backtest of one model). The same applies to time-scaling them: a fully out-of-sample backtest would need 504 fresh GARCH fits per model per portfolio. We may add this as an offline-cached computation later. For now, EWMA serves as the parametric-volatility benchmark; GARCH and tGARCH are shown in the snapshot table but not validated.
+
+**What's the panel telling me, big picture?**
+Not "these models are good or bad" — it's revealing each model's calibration behavior in the recent regime. EWMA chronically under-estimates tails; that's why EVT exists. EVT chronically over-estimates them; that's why HS exists. HS empirically captures both directions but reacts slowly to regime changes; that's why EWMA exists. The five-model approach in the snapshot table is justified precisely *because* each model has a known calibration drift in a specific direction. The validation panel surfaces those drifts statistically rather than asking you to take them on faith.
+
 
 ## Stress tests & scenarios
 
@@ -95,7 +135,7 @@ The historical set covers regimes that hit different parts of a portfolio differ
 Because in 2022 there was no hedge. Stocks AND bonds both sold off simultaneously. The 60/40 portfolio's traditional defense — bonds rallying when stocks fall — broke completely. Whether your portfolio is 90/10 (Vanguard TDF), 89/11 (Capital Group TDF), or 60/30 (hypothetical), the bonds didn't help. The Taiwan invasion or US recession scenarios show much bigger differences across modes precisely because in those, the bond allocation matters.
 
 **What does the "% of portfolio weight covered" note mean on some cards?**
-It appears when some assets in the active portfolio didn't exist during the historical scenario's date range. For the GFC scenario in hypothetical mode, BTC-USD (launched 2014) and CGUS (launched 2022) didn't exist, so they're excluded and the remaining weights are renormalized. The note tells you what fraction of the portfolio's weight was actually covered — 95% means 5% of holdings were excluded.
+It appears when some assets in the active portfolio didn't exist during the historical scenario's date range. For the GFC scenario in hypothetical mode, BTC-USD (launched 2014) didn't exist, so it's excluded and the remaining weights are renormalized. The note tells you what fraction of the portfolio's weight was actually covered.
 
 **Why does the portfolio toggle change the scenarios?**
 Because each scenario is computed against the *active portfolio*, not against the market in aggregate. A scenario is an answer to "what would happen to *my* holdings during this event." Different holdings → different P&L → different contribution breakdown. This is what makes the toggle interesting — same scenarios, very different stories.
@@ -140,12 +180,15 @@ A few additions with actual forward-looking evidence:
 5. **Options-implied vol per asset** from the options chain — most forward-looking but most complex to implement
 
 **What's missing to make this production-ready for a real fund?**
-Two big gaps remain:
-1. **Component VaR / risk attribution** — we currently compute portfolio VaR by running models on the weighted return series, which captures correlation effects but doesn't decompose how much each holding contributes to portfolio risk. A rigorous version would compute marginal VaR (sensitivity of portfolio VaR to a small change in each weight) and component VaR (each holding's contribution to total portfolio VaR).
-2. **Multi-period VaR** — everything is currently 1-day. A real fund needs 1-day, 10-day, and 1-month VaR for different liquidity assumptions and regulatory requirements. This involves either time-scaling (multiplying by √N — fine for normal returns, broken for fat tails) or directly fitting models to multi-day overlapping returns.
+Three remaining gaps, in rough priority order:
+1. **Multi-period VaR** — everything is currently 1-day. A real fund needs 1-day, 10-day, and 1-month VaR for different liquidity assumptions and Basel/regulatory requirements. This involves either time-scaling (multiplying by √N — fine for normal returns, broken for fat tails) or directly fitting models to multi-day overlapping returns.
+2. **Factor decomposition** — Bloomberg PORT, MSCI Barra, and FactSet all decompose risk into named factors (style, sector, geography, currency, duration, credit spread). RiskLens currently shows per-asset risk and component contributions but doesn't attribute to underlying factors. This is a meaningful build — needs factor return estimates, regression machinery, and care around regime stability.
+3. **GARCH and tGARCH backtesting** — currently only HS, EWMA, and EVT are backtested in the validation panel. GARCH-family models require iterative MLE refits per rolling step which is too expensive on a routine run. Adding offline-cached versions would close this gap.
+
+**Component VaR (formerly listed here)** is now built — every holding's contribution to portfolio VaR is shown in the Comp VaR column, computed via the EWMA covariance matrix. Sum of components equals portfolio EWMA VaR by construction.
 
 **How does this compare to professional risk systems like Bloomberg PORT or MSCI Barra?**
-The methodology is comparable for what's covered (multiple VaR models, EVT, exceptions, stress tests). The gaps are: (1) those systems use factor models that decompose risk into named factors (style, sector, geography, currency) rather than just per-ticker VaR, (2) they have decades of curated alternative data and proprietary risk factor definitions, (3) they cover thousands of asset classes including private credit, derivatives, and structured products. RiskLens is a deliberately scoped subset focused on liquid public ETFs.
+The methodology is comparable for what's covered (multiple VaR models with disagreement surfaced, EVT, exception tracking, stress tests, component VaR risk attribution, formal Kupiec + Christoffersen backtesting). The gaps are: (1) those systems use **factor models** that decompose risk into named factors (style, sector, geography, currency, duration, credit spread) rather than just per-asset attribution, (2) they have decades of curated alternative data and proprietary risk factor definitions, (3) they cover thousands of asset classes including private credit, derivatives, and structured products. RiskLens is a deliberately scoped subset focused on liquid public ETFs and mutual funds, with full methodology transparency you don't get from a vendor system.
 
 
 ## Technical
@@ -157,7 +200,7 @@ Yes for everything except the GARCH fitting, which uses the `arch` Python librar
 They span fundamentally different approaches: non-parametric (HS), parametric with fast decay (EWMA), conditional volatility (GARCH), asymmetric volatility (tGARCH), and tail-specific (EVT). They make different assumptions and fail in different regimes. Having all five lets you see model disagreement directly rather than trusting a single number. When EVT diverges significantly from the others, that's a specific, actionable signal about tail behavior.
 
 **Why does the correlation chart only go back to 2007 and not further?**
-The shortest-history ticker in the correlation basket is HYG (launched April 2007). We exclude CGUS (launched 2022) and BTC-USD (launched 2014) from the correlation calculation specifically to preserve the longer history — otherwise the series would start in 2022 and miss the GFC entirely.
+The shortest-history ticker in the correlation basket is HYG (launched April 2007). We exclude BTC-USD (launched 2014) from the correlation calculation specifically to preserve the longer history — otherwise the series would start in 2014 and miss the GFC entirely.
 
 **Doesn't the high correlation between SPY and QQQ distort the average — double counting equity exposure?**
 It influences the absolute level of the average but not the signal. SPY and QQQ are typically 0.95+ correlated, so that pair is always pulling the average up. But since it's always there, its contribution to the level is constant — what changes the average over time is when normally uncorrelated pairs start moving together. The most informative pairs in the basket are the cross-asset ones: SPY/GLD, TLT/SPY, HYG/TLT. In normal markets those correlations are low or negative. When they spike — as in 2022 when stocks and bonds both sold off — that's what drives the chart up. The SPY/QQQ pair being perpetually high is almost irrelevant to the regime signal.

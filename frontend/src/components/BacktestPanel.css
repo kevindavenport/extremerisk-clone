@@ -1,0 +1,129 @@
+.backtest-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.backtest-empty {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 20px;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.backtest-summary {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.65;
+}
+
+.backtest-summary strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.backtest-table-wrap {
+  overflow-x: auto;
+}
+
+.backtest-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.backtest-table thead th {
+  padding: 8px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+
+.backtest-table .left   { text-align: left; }
+.backtest-table .num    { text-align: right; font-variant-numeric: tabular-nums; }
+.backtest-table .center { text-align: center; }
+
+.backtest-table tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.backtest-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.backtest-table tbody td {
+  padding: 10px 12px;
+}
+
+.model-label {
+  font-weight: 600;
+  color: var(--text-bright);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.model-desc {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.text-dim {
+  color: var(--text-dim);
+}
+
+.verdict-calibrated,
+.verdict-under,
+.verdict-over,
+.verdict-clustered {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+}
+
+.verdict-calibrated { color: var(--green); }
+.verdict-under      { color: var(--red); }
+.verdict-over       { color: var(--yellow); }
+.verdict-clustered  { color: var(--red); }
+
+.backtest-interpretation {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.65;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.backtest-interpretation strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.backtest-interpretation .verdict-calibrated,
+.backtest-interpretation .verdict-under,
+.backtest-interpretation .verdict-over,
+.backtest-interpretation .verdict-clustered {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.backtest-footnote {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-style: italic;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  line-height: 1.55;
+}

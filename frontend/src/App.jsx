@@ -2,16 +2,28 @@ import { useEffect, useState, useMemo } from "react";
 import RiskTable from "./components/RiskTable.jsx";
 import HistoricalChart from "./components/HistoricalChart.jsx";
 import CorrelationChart from "./components/CorrelationChart.jsx";
+import PortfolioRiskChart from "./components/PortfolioRiskChart.jsx";
+import BacktestPanel from "./components/BacktestPanel.jsx";
 import ScenarioPanel from "./components/ScenarioPanel.jsx";
 import InfoTip from "./components/InfoTip.jsx";
 import "./App.css";
 
 const NAV_LINKS = [
   { id: "risk-snapshot",   label: "Risk Snapshot" },
+  { id: "risk-trajectory", label: "Risk Trajectory" },
+  { id: "model-validation", label: "Model Validation" },
   { id: "stress-tests",    label: "Stress Tests" },
   { id: "sp500-history",   label: "S&P 500 History" },
   { id: "correlation",     label: "Correlation" },
 ];
+
+// Short label shown on the portfolio summary row of the risk table.
+// Falls back to a generic "PORTFOLIO" label for any unknown mode.
+const PORTFOLIO_SHORT_LABELS = {
+  hypothetical: "HYPOTHETICAL PORTFOLIO",
+  tdf_2055:     "VANGUARD 2055",
+  cg_2055:      "AF TARGET 2055",
+};
 
 export default function App() {
   const [data, setData] = useState(null);
@@ -150,7 +162,29 @@ export default function App() {
               <span className="section-title">Current Risk Snapshot</span>
               <span className="section-desc">How risky is each asset today, relative to its own two-year history? Rows default-sorted by risk level. VaR = the minimum expected loss on the worst 1% of trading days, on a $100 position. Five models are shown because their disagreement is itself a signal — a wide spread means the asset has tail behavior that normal assumptions miss.</span>
             </div>
-            <RiskTable assets={portfolio.assets} portfolioWeights={portfolio.weights} />
+            <RiskTable
+              assets={portfolio.assets}
+              portfolioWeights={portfolio.weights}
+              portfolioLabel={PORTFOLIO_SHORT_LABELS[mode] ?? "PORTFOLIO"}
+            />
+          </section>
+        )}
+        {portfolio?.risk_history?.length > 0 && (
+          <section id="risk-trajectory" className="section">
+            <div className="section-header">
+              <span className="section-title">Portfolio Risk Trajectory</span>
+              <span className="section-desc">How has the active portfolio's daily risk evolved over time? This is the same EWMA VaR as the portfolio summary row in the table above, computed every trading day rather than just today's snapshot. Spikes line up with crises; the gradual return to baseline shows how regimes resolve. The history depth depends on which mode is selected — Vanguard reaches back to 2014, American Funds to 2007.</span>
+            </div>
+            <PortfolioRiskChart data={portfolio.risk_history} portfolioLabel={portfolio.label} />
+          </section>
+        )}
+        {portfolio?.backtests && (
+          <section id="model-validation" className="section">
+            <div className="section-header">
+              <span className="section-title">VaR Model Validation</span>
+              <span className="section-desc">Out-of-sample backtest of HS, EWMA, and EVT VaR models on the active portfolio. For each of the last 504 trading days, the model is given only the prior 1000 days to forecast that day's 1% VaR; we then compare against actual realized losses. The Kupiec test checks whether the observed exception rate matches the expected 1%; the Christoffersen test checks whether exceptions cluster (a sign of time-varying risk the model misses).</span>
+            </div>
+            <BacktestPanel data={portfolio.backtests} portfolioLabel={portfolio.label} />
           </section>
         )}
         {portfolio?.scenarios && (

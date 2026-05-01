@@ -15,6 +15,7 @@ const TIPS = {
   range:     "Range across all five VaR models (min – max). When tight, the models agree and standard assumptions hold. When wide — usually EVT pulling high — the asset's tail losses are more extreme than normal-distribution models capture. That gap is a warning, not noise.",
   alpha:     "Hill tail index — estimated from the worst losses. Lower = fatter tails. Broad equity indices typically 3–4; individual stocks 2–4; gold and crypto often below 3; long treasuries can be surprisingly fat-tailed.",
   risk:      "Percentile rank of today's EWMA VaR vs the past 2 years of daily values for this asset. 100% = highest risk seen in 2 years.",
+  compVar:   "Component VaR — this holding's contribution to the total portfolio VaR (parametric, EWMA covariance). Sum across all holdings equals the portfolio's EWMA VaR. Negative values indicate hedges (the holding's covariance with the rest of the portfolio reduces total risk).",
 };
 
 // Map column key → value extractor for sorting
@@ -32,6 +33,7 @@ const SORT_FNS = {
   range:     (a) => (Math.max(a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt) - Math.min(a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt)),
   alpha:     (a) => a.tail_index,
   risk:      (a) => a.risk_level,
+  compVar:   (a) => a.component_var ?? -Infinity,
 };
 
 function SortIcon({ col, sortKey, sortDir }) {
@@ -98,9 +100,26 @@ function VarCell({ value, className }) {
   return <td className={`num ${className ?? ""}`} style={{ color }}>{value.toFixed(2)}</td>;
 }
 
+function CompVarCell({ value, className }) {
+  if (value == null) {
+    return <td className={`num text-dim ${className ?? ""}`}>—</td>;
+  }
+  // Negative = hedge (reduces portfolio risk). Positive = contributes to risk.
+  let color;
+  if (value < 0)        color = "var(--green)";
+  else if (value > 0.5) color = "var(--red)";
+  else if (value > 0.2) color = "var(--yellow)";
+  else                  color = "var(--text-dim)";
+  return (
+    <td className={`num ${className ?? ""}`} style={{ color }}>
+      {value > 0 ? "+" : ""}{value.toFixed(2)}
+    </td>
+  );
+}
+
 function WeightsTooltip({ weights }) {
   if (!weights) return null;
-  const equity = ["SPY","QQQ","EEM","IWM","XLF","CGUS"];
+  const equity = ["SPY","QQQ","EEM","IWM","XLF"];
   const fi = ["TLT","LQD","HYG"];
   const real = ["GLD","VNQ"];
   const crypto = ["BTC-USD"];
@@ -118,12 +137,12 @@ function WeightsTooltip({ weights }) {
   return lines;
 }
 
-function PortfolioRow({ a }) {
+function PortfolioRow({ a, portfolioLabel }) {
   const weightTip = WeightsTooltip({ weights: a.weights });
   return (
     <tr className="portfolio-row">
       <td className="left asset-cell sticky-col portfolio-sticky">
-        <span className="ticker portfolio-ticker">HYPOTHETICAL PORTFOLIO</span>
+        <span className="ticker portfolio-ticker">{portfolioLabel ?? "PORTFOLIO"}</span>
         <span className="name">{a.name}</span>
       </td>
       <td className="num price">
@@ -147,11 +166,14 @@ function PortfolioRow({ a }) {
       </td>
       <td className="num consensus-cell portfolio-cell">{a.mean_var?.toFixed(2)}</td>
       <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} className="portfolio-cell" />
+      <td className="num portfolio-cell" title="Sum of component VaRs across all holdings — equals portfolio EWMA VaR by construction">
+        {a.component_var_total != null ? `Σ ${a.component_var_total.toFixed(2)}` : "—"}
+      </td>
     </tr>
   );
 }
 
-export default function RiskTable({ assets, portfolioWeights }) {
+export default function RiskTable({ assets, portfolioWeights, portfolioLabel }) {
   const [sortKey, setSortKey] = useState("risk");
   const [sortDir, setSortDir] = useState("desc");
 
@@ -198,6 +220,7 @@ export default function RiskTable({ assets, portfolioWeights }) {
             <ThWithTip col="risk"      label="Risk"       tip={TIPS.risk}      className="left" {...sp} />
             <ThWithTip col="consensus" label="Consensus"  tip={TIPS.consensus} className="num" {...sp} />
             <ThWithTip col="range"     label="Range"      tip={TIPS.range}     className="num" {...sp} />
+            <ThWithTip col="compVar"   label="Comp VaR"   tip={TIPS.compVar}   className="num" {...sp} />
           </tr>
         </thead>
         <tbody>
@@ -231,13 +254,14 @@ export default function RiskTable({ assets, portfolioWeights }) {
               </td>
               <td className="num consensus-cell">{a.mean_var?.toFixed(2)}</td>
               <RangeCell values={[a.var_hs, a.var_ewma, a.var_garch, a.var_tgarch, a.var_evt]} />
+              <CompVarCell value={a.component_var} />
             </tr>
             );
           })}
         </tbody>
         {portfolio && (
           <tfoot>
-            <PortfolioRow a={portfolio} />
+            <PortfolioRow a={portfolio} portfolioLabel={portfolioLabel} />
           </tfoot>
         )}
       </table>

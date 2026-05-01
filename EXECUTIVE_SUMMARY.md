@@ -3,7 +3,7 @@
 
 ## What It Is
 
-RiskLens is a quantitative market risk dashboard that computes daily Value-at-Risk (VaR) and tail-risk metrics across a portfolio of assets using multiple statistical models. It is modelled on academic risk measurement tools used by institutional researchers, but built to be accessible and visual. In its current form it covers twelve major liquid assets (S&P 500, Nasdaq 100, Gold, Long-dated Treasuries, Emerging Markets, Bitcoin, Russell 2000, High Yield Bonds, Investment Grade Bonds, Financials, Real Estate, and Capital Group Core Equity) and produces a fresh risk snapshot each time the backend is run.
+RiskLens is a quantitative market risk dashboard that computes daily Value-at-Risk (VaR) and tail-risk metrics across a portfolio of assets using multiple statistical models. It is modelled on academic risk measurement tools used by institutional researchers, but built to be accessible and visual. In its current form it covers eleven major liquid assets (S&P 500, Nasdaq 100, Gold, Long-dated Treasuries, Emerging Markets, Bitcoin, Russell 2000, High Yield Bonds, Investment Grade Bonds, Financials, and Real Estate) and produces a fresh risk snapshot each time the backend is run.
 
 
 ## What the Metrics Mean
