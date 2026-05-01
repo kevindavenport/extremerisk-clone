@@ -208,8 +208,15 @@ def main():
     corr_returns = compute_log_returns(prices_long[corr_cols])
     corr_history = compute_rolling_correlation(corr_returns)
 
-    # Latest trading date represented in the asset price data (typically yesterday's close)
-    data_as_of = prices_10y.index[-1].strftime("%Y-%m-%d")
+    # Latest US-equity trading date represented in the data. We walk back from
+    # the end of SPY's series until its price actually changes — this strips off
+    # any trailing rows that are forward-fill artifacts from 24/7-traded tickers
+    # like BTC reaching past the most recent US market close.
+    spy_series = prices_10y["SPY"]
+    i = len(spy_series) - 1
+    while i > 0 and spy_series.iloc[i] == spy_series.iloc[i - 1]:
+        i -= 1
+    data_as_of = prices_10y.index[i].strftime("%Y-%m-%d")
 
     output = {
         "generated_at":        datetime.now(timezone.utc).isoformat(),
