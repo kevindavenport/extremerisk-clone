@@ -221,7 +221,11 @@ export default function App() {
             <CorrelationChart data={data.correlation_history} />
           </section>
         )}
-        {data?.intraday_corr_history?.length > 0 && (
+        {data?.intraday_corr_history && (
+          Array.isArray(data.intraday_corr_history)
+            ? data.intraday_corr_history.length > 0
+            : Object.values(data.intraday_corr_history).some((s) => s?.length > 0)
+        ) && (
           <section id="intraday-corr" className="section">
             <div className="section-header">
               <span className="section-title">Market Context — Intraday Stock-Bond Correlation</span>
