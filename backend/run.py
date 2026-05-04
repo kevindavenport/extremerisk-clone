@@ -11,12 +11,14 @@ from fetch_data import (
     TDF_2055_TICKERS, TDF_2055_NAMES,
     CG_2055_TICKERS, CG_2055_NAMES,
     compute_log_returns, fetch_prices, fetch_sp500_history, fetch_vix_history,
+    fetch_yield_curve_spread,
 )
 from risk_engine import (
     compute_asset_risk, compute_sp500_history, compute_rolling_correlation,
     compute_scenarios, compute_hypothetical_scenarios,
     compute_portfolio_risk_history, compute_component_var,
-    backtest_portfolio_var, backtest_portfolio_garch, CORR_TICKERS,
+    backtest_portfolio_var, backtest_portfolio_garch,
+    nyfed_recession_probability, CORR_TICKERS,
 )
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "data", "risk_output.json")
@@ -24,6 +26,90 @@ OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "frontend", "public"
 # Cached GARCH/tGARCH backtests — too slow for the daily run, refreshed on
 # demand via RISKLENS_FULL_BACKTEST=1 python run.py
 GARCH_CACHE_PATH = os.path.join(os.path.dirname(__file__), "cache", "garch_backtests.json")
+
+
+# ---------------------------------------------------------------------------
+# Probability outlook — external source links per hypothetical scenario.
+# Curated rather than computed; we don't want to make up percentages.
+# Where a live computation is defensible (e.g. NY Fed recession probability
+# from the yield-curve spread), we attach it dynamically below.
+# ---------------------------------------------------------------------------
+PROBABILITY_SOURCES = {
+    "taiwan_invasion": [
+        {
+            "name": "Metaculus — Sino-American war over Taiwan by 2030",
+            "url":  "https://www.metaculus.com/questions/?search=taiwan",
+            "note": "Aggregated forecaster probabilities with track-record scoring.",
+        },
+        {
+            "name": "Polymarket — China invasion / blockade markets",
+            "url":  "https://polymarket.com/markets?_q=taiwan",
+            "note": "Money-backed prediction markets. Liquidity varies.",
+        },
+        {
+            "name": "CSIS — \"The First Battle of the Next War\" war-game",
+            "url":  "https://www.csis.org/analysis/first-battle-next-war-wargaming-chinese-invasion-taiwan",
+            "note": "Structured war-game with explicit probability framing (Hass et al, 2023).",
+        },
+    ],
+    "iran_conflict": [
+        {
+            "name": "Polymarket — Iran-Israel war / Hormuz markets",
+            "url":  "https://polymarket.com/markets?_q=iran",
+            "note": "Time-bounded conflict probability questions.",
+        },
+        {
+            "name": "Brent crude futures (CME)",
+            "url":  "https://www.cmegroup.com/markets/energy/crude-oil/brent-crude-oil.html",
+            "note": "Forward-looking oil pricing reflects supply-disruption risk.",
+        },
+        {
+            "name": "Metaculus — Middle East conflict questions",
+            "url":  "https://www.metaculus.com/questions/?search=iran",
+            "note": "Aggregated forecaster probabilities.",
+        },
+    ],
+    "us_recession": [
+        # The NY Fed entry is upserted at runtime with a live value.
+        {
+            "name": "NY Fed recession-probability methodology",
+            "url":  "https://www.newyorkfed.org/research/capital_markets/ycfaq.html",
+            "note": "Estrella-Trubin probit model on the 10Y - 3M Treasury yield spread.",
+        },
+        {
+            "name": "Conference Board Leading Economic Index",
+            "url":  "https://www.conference-board.org/topics/us-leading-indicators",
+            "note": "Composite leading indicator; sustained declines have historically preceded recessions.",
+        },
+        {
+            "name": "Polymarket — US recession in 2026",
+            "url":  "https://polymarket.com/markets?_q=us+recession",
+            "note": "Money-backed prediction market.",
+        },
+        {
+            "name": "FRED — yield curve and recession indicators",
+            "url":  "https://fred.stlouisfed.org/series/T10Y3M",
+            "note": "Source data behind the NY Fed model.",
+        },
+    ],
+    "ai_bubble_burst": [
+        {
+            "name": "CBOE SKEW Index",
+            "url":  "https://www.cboe.com/tradable_products/sp_500/skew_index/",
+            "note": "Implied probability of large negative S&P 500 returns from option pricing.",
+        },
+        {
+            "name": "Shiller CAPE ratio (Robert Shiller, Yale)",
+            "url":  "http://www.econ.yale.edu/~shiller/data.htm",
+            "note": "Cyclically-adjusted price-to-earnings ratio. Extreme readings have historically preceded multi-year drawdowns.",
+        },
+        {
+            "name": "Goldman Sachs equity-research bubble dashboards",
+            "url":  "https://www.goldmansachs.com/insights/topics/equities",
+            "note": "Sell-side valuation extreme indicators (concentration, premium to historical median, etc.).",
+        },
+    ],
+}
 
 # ---------------------------------------------------------------------------
 # Hypothetical blended portfolio weights (must sum to 1.0)
@@ -221,6 +307,35 @@ def main():
     for key, cfg in PORTFOLIO_MODES.items():
         print(f"\n=== Mode: {cfg['label']} ===")
         portfolios[key] = compute_mode(prices_10y, returns_10y, prices_long, cfg)
+
+    # Live external probability signals — attached to relevant hypothetical scenarios.
+    # NY Fed yield-curve recession probability (Estrella-Trubin 2006).
+    print("\nFetching yield-curve data for NY Fed recession probability...")
+    try:
+        y10, y3m, spread = fetch_yield_curve_spread()
+        recession_prob = nyfed_recession_probability(spread)
+        ny_fed_live = {
+            "name":         "NY Fed yield-curve model — live",
+            "value":        round(float(recession_prob) * 100, 1),
+            "value_label":  f"{round(float(recession_prob) * 100, 1)}%",
+            "context":      f"From current 10Y - 3M spread of {spread:+.2f}% ({y10:.2f}% – {y3m:.2f}%)",
+            "url":          "https://www.newyorkfed.org/research/capital_markets/ycfaq.html",
+            "live":         True,
+        }
+        print(f"  10Y={y10:.2f}%  3M={y3m:.2f}%  spread={spread:+.2f}%  →  P(recession 12mo) = {recession_prob*100:.1f}%")
+    except Exception as e:
+        print(f"  WARNING: failed to compute live recession probability ({e}); using static sources only.")
+        ny_fed_live = None
+
+    # Augment hypothetical scenarios in each portfolio with probability sources
+    for portfolio in portfolios.values():
+        for sc in portfolio.get("scenarios", []):
+            if sc.get("type") != "hypothetical":
+                continue
+            sources = list(PROBABILITY_SOURCES.get(sc["id"], []))
+            sc["probability_sources"] = sources
+            if sc["id"] == "us_recession" and ny_fed_live is not None:
+                sc["probability_live"] = ny_fed_live
 
     # GARCH / tGARCH backtests — heavy compute, separately cached.
     # Trigger a refresh by setting RISKLENS_FULL_BACKTEST=1 before invoking.

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import HoverTip from "./HoverTip.jsx";
 import "./ScenarioPanel.css";
 
@@ -138,6 +139,7 @@ function ComparisonTooltip({ comparisons, currentMode, currentPnl }) {
 function ScenarioCard({ s, weights, comparisons, currentMode }) {
   const isHypo = s.type === "hypothetical";
   const isLoss = s.portfolio_pnl < 0;
+  const [refsOpen, setRefsOpen] = useState(false);
 
   const sorted = Object.entries(s.contributions).sort((a, b) => a[1] - b[1]);
   const maxAbs = Math.max(...sorted.map(([, v]) => Math.abs(v)));
@@ -200,6 +202,60 @@ function ScenarioCard({ s, weights, comparisons, currentMode }) {
           />
         ))}
       </div>
+
+      {isHypo && (s.probability_live || s.probability_sources?.length > 0) && (
+        <div className="prob-outlook">
+          <div className="prob-outlook-label">Probability outlook</div>
+
+          {s.probability_live && (
+            <div className="prob-live">
+              <a
+                href={s.probability_live.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="prob-live-link"
+              >
+                {s.probability_live.name} ↗
+              </a>
+              <span className="prob-live-value">{s.probability_live.value_label}</span>
+              {s.probability_live.context && (
+                <div className="prob-live-context">{s.probability_live.context}</div>
+              )}
+            </div>
+          )}
+
+          {s.probability_sources?.length > 0 && (
+            <div className="prob-sources">
+              <button
+                className={`prob-refs-toggle${refsOpen ? " open" : ""}`}
+                onClick={() => setRefsOpen((o) => !o)}
+                aria-expanded={refsOpen}
+              >
+                {refsOpen
+                  ? `▾ Hide external references (${s.probability_sources.length})`
+                  : `▸ External references (${s.probability_sources.length})`}
+              </button>
+              {refsOpen && (
+                <ul className="prob-sources-list">
+                  {s.probability_sources.map((src) => (
+                    <li key={src.name}>
+                      <a
+                        href={src.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="prob-source-link"
+                      >
+                        {src.name} ↗
+                      </a>
+                      {src.note && <span className="prob-source-note"> · {src.note}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {s.coverage_pct < 100 && (
         <div className="scenario-coverage">

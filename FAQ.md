@@ -145,6 +145,17 @@ It appears when some assets in the active portfolio didn't exist during the hist
 **Why does the portfolio toggle change the scenarios?**
 Because each scenario is computed against the *active portfolio*, not against the market in aggregate. A scenario is an answer to "what would happen to *my* holdings during this event." Different holdings → different P&L → different contribution breakdown. This is what makes the toggle interesting — same scenarios, very different stories.
 
+**What's the "Probability outlook" section on each hypothetical card?**
+Curated external probability sources, plus one live computation where the methodology is rock-solid. The deliberate choice is **not** to put a single made-up percentage on each card — that's a strong claim with weak evidence. Instead:
+
+- **US Recession**: live calculation using the NY Fed's yield-curve recession probability (Estrella-Trubin 2006 probit model on the 10Y - 3M Treasury yield spread). This is a public Federal Reserve methodology, the formula is documented, and the inputs are pulled fresh on every backend run. The current value is computed and shown directly.
+- **Taiwan Invasion / Iran Conflict / AI Bubble Burst**: links to external sources (Polymarket, Metaculus, CSIS war-game reports, CBOE SKEW, Shiller CAPE, etc.) where you can find current probability estimates from money-backed prediction markets, structured forecaster aggregations, or implied-probability indicators. The dashboard doesn't try to synthesize these into a single number because doing so would introduce subjective judgment that quants will rightly question.
+
+This is the most quant-credible framing: live numbers where the methodology is defensible, transparent attribution where it isn't.
+
+**Why not just attach a probability percentage to every card?**
+Because most "probability of geopolitical event" estimates are vibes wearing the costume of quant. The honest choices are: use a published methodology with a real formula (NY Fed for recession), use money-backed prediction markets (Polymarket / Manifold), or use options-implied measures (CBOE SKEW, put skew). For Taiwan invasion specifically, no clean historical base rate exists and prediction markets often have low liquidity for the relevant time horizons. Showing "Taiwan invasion: 14%" with no source kills credibility for any quant audience. Showing curated source links lets the reader form their own probability view from data they trust.
+
 
 ## Market context charts
 

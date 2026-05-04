@@ -944,3 +944,19 @@ def backtest_portfolio_garch(
         "christoffersen_p": cp,
         "verdict":          verdict,
     }
+
+
+def nyfed_recession_probability(spread_pct: float) -> float:
+    """
+    NY Fed yield-curve recession probability. Estrella & Trubin (2006)
+    Federal Reserve Bank of New York Staff Report — uses a probit model
+    of NBER recessions on the 10Y - 3M Treasury yield spread.
+
+    Formula:  P(recession in 12 months) = Φ(-0.5333 - 0.6330 × spread)
+    where spread is in percentage points.
+
+    Source: https://www.newyorkfed.org/research/capital_markets/ycfaq.html
+    Returns a probability in [0, 1].
+    """
+    z = -0.5333 - 0.6330 * spread_pct
+    return float(norm.cdf(z))

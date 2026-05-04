@@ -178,6 +178,158 @@
 .contrib-ret.loss { color: var(--red); }
 .contrib-ret.gain { color: var(--green); }
 
+/* ── Probability outlook ── */
+.prob-outlook {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scenario-card.hypo .prob-outlook {
+  border-top-color: #3a2e10;
+}
+
+.prob-outlook-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.scenario-card.hypo .prob-outlook-label {
+  color: #b07d2a;
+}
+
+.prob-live {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prob-live-link {
+  font-size: 11px;
+  color: var(--text);
+  text-decoration: none;
+  line-height: 1.3;
+  display: inline-block;
+}
+
+.prob-live-link:hover {
+  color: var(--accent);
+}
+
+.prob-live-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  display: block;
+  margin-top: 1px;
+}
+
+.scenario-card.hypo .prob-live-value {
+  color: #d4941a;
+}
+
+.prob-live-context {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.prob-sources-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.prob-refs-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  align-self: flex-start;
+}
+
+.prob-refs-toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--bg3);
+}
+
+.scenario-card.hypo .prob-refs-toggle {
+  border-color: #3a2e10;
+  color: #b07d2a;
+}
+
+.scenario-card.hypo .prob-refs-toggle:hover {
+  color: #d4941a;
+  border-color: #4a3510;
+}
+
+.prob-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prob-sources .prob-sources-list {
+  margin-top: 2px;
+}
+
+.prob-sources-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.prob-sources-list li {
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.prob-source-link {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.prob-source-link:hover {
+  color: var(--accent);
+}
+
+.prob-source-note {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.scenario-card.hypo .prob-source-link {
+  color: #d4941a;
+  opacity: 0.85;
+}
+
+.scenario-card.hypo .prob-source-link:hover {
+  opacity: 1;
+}
+
 /* ── Footer note ── */
 .scenario-coverage {
   font-size: 10px;

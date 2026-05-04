@@ -112,3 +112,30 @@ def fetch_sp500_history() -> tuple[pd.Series, pd.Series]:
     prices = prices.ffill().dropna()
     returns = np.log(prices / prices.shift(1)).dropna()
     return returns, prices
+
+
+def fetch_yield_curve_spread() -> tuple[float, float, float]:
+    """
+    Fetch the current 10Y - 3M Treasury yield spread.
+    Returns (latest_10y_pct, latest_3m_pct, spread_pct) as floats in percent.
+    Used to compute the NY Fed yield-curve recession probability.
+    """
+    def _last(symbol: str) -> float:
+        raw = yf.download(symbol, period="3mo", auto_adjust=False,
+                          progress=False, threads=False)
+        if isinstance(raw.columns, pd.MultiIndex):
+            s = raw["Close"].iloc[:, 0]
+        else:
+            s = raw["Close"]
+        s = s.ffill().dropna()
+        return float(s.iloc[-1])
+
+    # ^TNX = CBOE 10-Year Treasury Yield Index (quoted in tenths of a percent — 45 = 4.5%)
+    # ^IRX = CBOE 13-Week Treasury Bill Index (already in percent, e.g. 5.2)
+    tnx_raw = _last("^TNX")
+    irx_raw = _last("^IRX")
+    # ^TNX is reported as percent × 10 historically, but yfinance returns it
+    # already in percent for recent quotes. Handle both: if value > 30, divide by 10.
+    y10 = tnx_raw / 10 if tnx_raw > 30 else tnx_raw
+    y3m = irx_raw  # already in percent
+    return y10, y3m, y10 - y3m
