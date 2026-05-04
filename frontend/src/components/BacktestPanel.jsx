@@ -146,6 +146,23 @@ export default function BacktestPanel({ data, portfolioLabel }) {
         "good" or "bad" in general.
       </div>
 
+      <div className="backtest-interpretation">
+        <strong>Why most models often show UNDER-EST.</strong> Parametric
+        volatility models (EWMA, GARCH, tGARCH) assume normal-distribution
+        tails — but real returns have fat tails (excess kurtosis), so they
+        systematically miss the far tail at 1% confidence. This is canonical:
+        every quant textbook covers it. The current 504-day window also
+        includes 2022's dual-asset selloff and the 2025 tariff shock — an
+        above-average-stress regime that any model evaluated against would
+        look like it's missing tails. EVT doesn't share the normality
+        assumption and compensates by being too conservative. The asymmetric
+        failure pattern (parametric models UNDER-EST, EVT OVER-CONSERV) is
+        the literature's predicted result, not a methodology bug — and is
+        precisely why this dashboard shows all five models rather than
+        picking one. Trust EVT for tail sizing in fat-tail regimes; trust
+        the parametric models for everyday vol forecasting.
+      </div>
+
       <div className="backtest-footnote">
         GARCH(1,1) and GJR-tGARCH are not backtested here because they require
         re-fitting via maximum likelihood at each rolling step, which is too

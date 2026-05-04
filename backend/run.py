@@ -16,10 +16,14 @@ from risk_engine import (
     compute_asset_risk, compute_sp500_history, compute_rolling_correlation,
     compute_scenarios, compute_hypothetical_scenarios,
     compute_portfolio_risk_history, compute_component_var,
-    backtest_portfolio_var, CORR_TICKERS,
+    backtest_portfolio_var, backtest_portfolio_garch, CORR_TICKERS,
 )
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "data", "risk_output.json")
+
+# Cached GARCH/tGARCH backtests — too slow for the daily run, refreshed on
+# demand via RISKLENS_FULL_BACKTEST=1 python run.py
+GARCH_CACHE_PATH = os.path.join(os.path.dirname(__file__), "cache", "garch_backtests.json")
 
 # ---------------------------------------------------------------------------
 # Hypothetical blended portfolio weights (must sum to 1.0)
@@ -217,6 +221,44 @@ def main():
     for key, cfg in PORTFOLIO_MODES.items():
         print(f"\n=== Mode: {cfg['label']} ===")
         portfolios[key] = compute_mode(prices_10y, returns_10y, prices_long, cfg)
+
+    # GARCH / tGARCH backtests — heavy compute, separately cached.
+    # Trigger a refresh by setting RISKLENS_FULL_BACKTEST=1 before invoking.
+    refresh_garch = os.environ.get("RISKLENS_FULL_BACKTEST", "0") == "1"
+    if refresh_garch:
+        print("\n[FULL BACKTEST MODE] Re-computing GARCH/tGARCH backtests (slow)...")
+        garch_cache = {}
+        for key, cfg in PORTFOLIO_MODES.items():
+            print(f"  GARCH(1,1) backtest for {cfg['label']}...")
+            g = backtest_portfolio_garch(prices_long, cfg["weights"], asymmetric=False)
+            print(f"  GJR-tGARCH backtest for {cfg['label']}...")
+            tg = backtest_portfolio_garch(prices_long, cfg["weights"], asymmetric=True)
+            garch_cache[key] = [r for r in [g, tg] if r is not None]
+
+        os.makedirs(os.path.dirname(GARCH_CACHE_PATH), exist_ok=True)
+        with open(GARCH_CACHE_PATH, "w") as f:
+            json.dump({
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "portfolios":   garch_cache,
+            }, f, indent=2)
+        print(f"  Wrote GARCH cache → {GARCH_CACHE_PATH}")
+    else:
+        garch_cache = {}
+        if os.path.exists(GARCH_CACHE_PATH):
+            try:
+                with open(GARCH_CACHE_PATH) as f:
+                    cache_data = json.load(f)
+                garch_cache = cache_data.get("portfolios", {})
+                print(f"\nLoaded GARCH backtest cache (generated {cache_data.get('generated_at', 'unknown')})")
+            except Exception as e:
+                print(f"\nWARNING: failed to load GARCH cache ({e}); GARCH/tGARCH backtests will be omitted.")
+        else:
+            print(f"\nNo GARCH cache at {GARCH_CACHE_PATH}; run RISKLENS_FULL_BACKTEST=1 python run.py to populate.")
+
+    # Merge cached GARCH/tGARCH into each portfolio's backtests array
+    for key, p in portfolios.items():
+        cached = garch_cache.get(key, [])
+        p["backtests"] = p["backtests"] + cached
 
     # S&P 500 historical chart
     print("\nFetching S&P 500 full history (^GSPC)...")

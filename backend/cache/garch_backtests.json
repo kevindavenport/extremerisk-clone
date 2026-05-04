@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-05-02T02:37:17.040298+00:00",
+  "portfolios": {
+    "hypothetical": [
+      {
+        "model": "GARCH",
+        "exceptions": 13,
+        "expected": 5.0,
+        "rate_pct": 2.58,
+        "expected_pct": 1.0,
+        "kupiec_p": 0.0029,
+        "christoffersen_p": 0.3361,
+        "verdict": "UNDER-EST"
+      },
+      {
+        "model": "tGARCH",
+        "exceptions": 11,
+        "expected": 5.0,
+        "rate_pct": 2.18,
+        "expected_pct": 1.0,
+        "kupiec_p": 0.0211,
+        "christoffersen_p": 0.2299,
+        "verdict": "UNDER-EST"
+      }
+    ],
+    "tdf_2055": [
+      {
+        "model": "GARCH",
+        "exceptions": 13,
+        "expected": 5.0,
+        "rate_pct": 2.58,
+        "expected_pct": 1.0,
+        "kupiec_p": 0.0029,
+        "christoffersen_p": 0.3361,
+        "verdict": "UNDER-EST"
+      },
+      {
+        "model": "tGARCH",
+        "exceptions": 11,
+        "expected": 5.0,
+        "rate_pct": 2.18,
+        "expected_pct": 1.0,
+        "kupiec_p": 0.0211,
+        "christoffersen_p": 0.2299,
+        "verdict": "UNDER-EST"
+      }
+    ],
+    "cg_2055": [
+      {
+        "model": "GARCH",
+        "exceptions": 15,
+        "expected": 5.0,
+        "rate_pct": 2.98,
+        "expected_pct": 1.0,
+        "kupiec_p": 0.0003,
+        "christoffersen_p": 0.4596,
+        "verdict": "UNDER-EST"
+      },
+      {
+        "model": "tGARCH",
+        "exceptions": 14,
+        "expected": 5.0,
+        "rate_pct": 2.78,
+        "expected_pct": 1.0,
+        "kupiec_p": 0.001,
+        "christoffersen_p": 0.3959,
+        "verdict": "UNDER-EST"
+      }
+    ]
+  }
+}

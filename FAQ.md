@@ -113,8 +113,13 @@ EWMA's exception rate is consistently around 2.5–3% in the backtests versus th
 **Why does EVT usually show OVER-CONSERV?**
 EVT typically over-shoots — its exception rate is closer to 0–0.2% versus the 1% target. The Generalized Pareto fit to the worst-loss tail produces VaR estimates that are pessimistic enough that real losses rarely exceed them. That's a feature for risk management (you're prepared for tail events) but a statistical failure for calibration testing. Combine EVT with EWMA and HS to get a fuller picture: EWMA gives you the "baseline" rate, HS gives you the empirical reality, EVT gives you the conservative tail bound.
 
-**Why aren't GARCH and tGARCH backtested?**
-Both require iterative maximum-likelihood re-fits on each rolling window, which is too computationally expensive on a routine daily run (~50 minutes for the full backtest of one model). The same applies to time-scaling them: a fully out-of-sample backtest would need 504 fresh GARCH fits per model per portfolio. We may add this as an offline-cached computation later. For now, EWMA serves as the parametric-volatility benchmark; GARCH and tGARCH are shown in the snapshot table but not validated.
+**Are GARCH and tGARCH also backtested?**
+Yes, with one architectural caveat. Both run on the same 504-day eval window with the same Kupiec + Christoffersen tests as HS, EWMA, and EVT. The implementation uses warm-started MLE — each rolling refit starts from the previous day's fitted parameters, which drops convergence iterations from ~30+ to ~3–10 and makes the full backtest take seconds rather than minutes. Convergence failures (rare) fall back to EWMA.
+
+The architectural caveat: GARCH/tGARCH backtest results are **cached** in `backend/cache/garch_backtests.json` rather than recomputed on every backend run. The daily refresh just reads the cache. To regenerate them (e.g., after a methodology change or to incorporate new data), run `RISKLENS_FULL_BACKTEST=1 python backend/run.py`. Backtest verdicts are a methodology check, not a current-state metric, so they don't need daily refresh.
+
+**What do GARCH and tGARCH actually show in the panel?**
+Both typically show **UNDER-EST** in this dataset — exception rates around 2.2–3% versus the 1% target. That's the expected pattern for parametric volatility models: GARCH-family forecasts react to recent realized vol but still underestimate fat-tail events because the underlying distribution assumption is normal. **tGARCH is usually slightly better than plain GARCH** (lower exception rate) because its asymmetric term — extra weight on negative shocks — reacts faster to volatility regime changes. That's exactly what the literature predicts and the panel surfaces it cleanly.
 
 **What's the panel telling me, big picture?**
 Not "these models are good or bad" — it's revealing each model's calibration behavior in the recent regime. EWMA chronically under-estimates tails; that's why EVT exists. EVT chronically over-estimates them; that's why HS exists. HS empirically captures both directions but reacts slowly to regime changes; that's why EWMA exists. The five-model approach in the snapshot table is justified precisely *because* each model has a known calibration drift in a specific direction. The validation panel surfaces those drifts statistically rather than asking you to take them on faith.
@@ -180,15 +185,26 @@ A few additions with actual forward-looking evidence:
 5. **Options-implied vol per asset** from the options chain — most forward-looking but most complex to implement
 
 **What's missing to make this production-ready for a real fund?**
-Three remaining gaps, in rough priority order:
+Two remaining gaps, in rough priority order:
 1. **Multi-period VaR** — everything is currently 1-day. A real fund needs 1-day, 10-day, and 1-month VaR for different liquidity assumptions and Basel/regulatory requirements. This involves either time-scaling (multiplying by √N — fine for normal returns, broken for fat tails) or directly fitting models to multi-day overlapping returns.
 2. **Factor decomposition** — Bloomberg PORT, MSCI Barra, and FactSet all decompose risk into named factors (style, sector, geography, currency, duration, credit spread). RiskLens currently shows per-asset risk and component contributions but doesn't attribute to underlying factors. This is a meaningful build — needs factor return estimates, regression machinery, and care around regime stability.
-3. **GARCH and tGARCH backtesting** — currently only HS, EWMA, and EVT are backtested in the validation panel. GARCH-family models require iterative MLE refits per rolling step which is too expensive on a routine run. Adding offline-cached versions would close this gap.
 
-**Component VaR (formerly listed here)** is now built — every holding's contribution to portfolio VaR is shown in the Comp VaR column, computed via the EWMA covariance matrix. Sum of components equals portfolio EWMA VaR by construction.
+**Component VaR and GARCH/tGARCH backtesting (formerly listed here)** are now built. All five model types (HS, EWMA, GARCH, tGARCH, EVT) are validated in the panel with directional Kupiec + Christoffersen verdicts. GARCH-family backtests use warm-started MLE refits and are cached separately so they don't slow the daily refresh.
 
 **How does this compare to professional risk systems like Bloomberg PORT or MSCI Barra?**
-The methodology is comparable for what's covered (multiple VaR models with disagreement surfaced, EVT, exception tracking, stress tests, component VaR risk attribution, formal Kupiec + Christoffersen backtesting). The gaps are: (1) those systems use **factor models** that decompose risk into named factors (style, sector, geography, currency, duration, credit spread) rather than just per-asset attribution, (2) they have decades of curated alternative data and proprietary risk factor definitions, (3) they cover thousands of asset classes including private credit, derivatives, and structured products. RiskLens is a deliberately scoped subset focused on liquid public ETFs and mutual funds, with full methodology transparency you don't get from a vendor system.
+The methodology is comparable for what's covered (five VaR models with disagreement surfaced, EVT, exception tracking, stress tests both historical and hypothetical, component VaR risk attribution, formal Kupiec + Christoffersen backtesting on all five model types). The gaps are: (1) those systems use **factor models** that decompose risk into named factors (style, sector, geography, currency, duration, credit spread) rather than just per-asset attribution, (2) they have decades of curated alternative data and proprietary risk factor definitions, (3) they cover thousands of asset classes including private credit, derivatives, and structured products. RiskLens is a deliberately scoped subset focused on liquid public ETFs and mutual funds, with full methodology transparency you don't get from a vendor system.
+
+**Where's the factor model? Why isn't risk decomposed by style, sector, and country like Barra does?**
+Because I haven't built one. Component VaR (the rightmost column on the risk table) decomposes portfolio VaR per holding via an EWMA covariance matrix — that's a correct decomposition, just per-asset rather than per-factor. A factor model would name the underlying drivers (Value, Growth, Quality, Momentum, sector exposures, country/region, duration, credit spread, FX) and tell you which factor bets are explaining today's risk. That's the layer Barra/Axioma sells and RiskLens doesn't replicate.
+
+Building one is real work: define a factor universe, estimate factor returns and time-varying loadings per holding, split systematic from idiosyncratic risk, build attribution UIs. Months of effort to do well. Anyone coming from the factor-model world will see this page as a competent VaR-and-stress-test dashboard that's missing the layer they actually live in. That's a fair read.
+
+**Does anyone actually build their own factor model, or do most firms use Barra/MSCI?**
+Most firms buy. Long-only asset managers, mutual funds, pensions, insurance — they license Barra (MSCI), Axioma (SimCorp), or similar. Vendor models are good enough, regulator/auditor comfort is built in, and a ground-up build costs more than it's worth.
+
+The exceptions are quant hedge funds — Renaissance, Citadel, DE Shaw, Two Sigma, Hudson River, AQR — where the factor model isn't just a risk tool, it's a proprietary alpha source. They believe their definitions or estimation methods are sharper than commercial offerings and treat the model as IP. Some large asset managers (BlackRock with Aladdin) run internal models alongside vendor models, often using the vendor for compliance reporting and the internal model for trading decisions.
+
+For a typical long-only shop the realistic stack is: vendor model as the primary risk system, internal research layered on top for specific applications (custom factors, alternative data integration, strategy-specific risk views). Building a ground-up factor model from scratch at a long-only manager would be a strange use of headcount.
 
 
 ## Technical
