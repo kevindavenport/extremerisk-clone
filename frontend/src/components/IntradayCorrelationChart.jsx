@@ -18,7 +18,12 @@ function barColor(c) {
   return c >= 0 ? "#e53e3e" : "#00c97a";
 }
 
-const CustomTooltip = ({ active, payload, label }) => {
+const INTERVAL_LABELS = {
+  "5m":  { label: "5 min",  obsPerDay: 78 },
+  "15m": { label: "15 min", obsPerDay: 26 },
+};
+
+const CustomTooltip = ({ active, payload, label, intervalLabel }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   const c = d?.corr;
@@ -35,7 +40,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         <span>{c >= 0 ? "+" : ""}{c?.toFixed(3)}</span>
       </div>
       <div className="tt-row">
-        <span style={{ color: "#8896aa" }}>5-min bars</span>
+        <span style={{ color: "#8896aa" }}>{intervalLabel} bars</span>
         <span>{d?.n_obs}</span>
       </div>
       <div style={{ marginTop: 6, fontSize: 11, color: "#8896aa", lineHeight: 1.4 }}>
@@ -47,41 +52,71 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 
 export default function IntradayCorrelationChart({ data }) {
+  // data is now an object: { interval_5m: [...], interval_15m: [...] }
+  // Default to 15m (less microstructure noise, academic-literature standard).
+  const [interval, setInterval] = useState("15m");
   const [insightOpen, setInsightOpen] = useState(false);
-  if (!data?.length) return null;
 
-  // Identify the trailing same-sign streak (the regime-shift signal)
-  const last = data[data.length - 1];
+  // Backward-compat: if data is still a flat array (old format), wrap it
+  const series =
+    Array.isArray(data) ? data
+    : data?.[`interval_${interval}`] ?? [];
+
+  if (!series.length) return null;
+
+  const intervalMeta = INTERVAL_LABELS[interval] ?? { label: interval, obsPerDay: "?" };
+
+  // Identify trailing same-sign streak (the regime-shift signal)
+  const last = series[series.length - 1];
   const lastSign = last.corr > 0 ? 1 : last.corr < 0 ? -1 : 0;
   let streak = 0;
   if (lastSign !== 0) {
-    for (let i = data.length - 1; i >= 0; i--) {
-      const s = data[i].corr > 0 ? 1 : data[i].corr < 0 ? -1 : 0;
+    for (let i = series.length - 1; i >= 0; i--) {
+      const s = series[i].corr > 0 ? 1 : series[i].corr < 0 ? -1 : 0;
       if (s === lastSign) streak++;
       else break;
     }
   }
 
-  const nPositive = data.filter((d) => d.corr > 0).length;
-  const nTotal = data.length;
+  const nPositive = series.filter((d) => d.corr > 0).length;
+  const nTotal = series.length;
   const pctPositive = ((nPositive / nTotal) * 100).toFixed(0);
 
-  // Streak callout copy
+  // Streak callout (regime + magnitude qualifier)
   const streakLabel =
     streak === 0 ? null
+  : streak === 1 ? null  // single-day streak isn't a regime signal
   : lastSign > 0 ? `${streak} consecutive positive days — rates-regime signal`
                  : `${streak} consecutive negative days — growth-regime / diversification working`;
 
-  // Sample x-axis ticks every ~7 trading days
-  const tickInterval = Math.max(1, Math.floor(data.length / 8));
+  const availableIntervals = Array.isArray(data)
+    ? null
+    : Object.keys(data ?? {}).map((k) => k.replace("interval_", ""));
+
+  const tickInterval = Math.max(1, Math.floor(series.length / 8));
 
   return (
     <div className="historical-chart-wrapper" style={{ marginTop: 0 }}>
       <div className="chart-header">
         <span className="chart-title">Intraday Stock-Bond Correlation</span>
         <span className="chart-subtitle">
-          SPY × TLT correlation from 5-minute bars · daily values · {nTotal} trading days · {pctPositive}% positive
+          SPY × TLT correlation from {intervalMeta.label} bars · daily values · {nTotal} trading days · {pctPositive}% positive
         </span>
+
+        {availableIntervals && availableIntervals.length > 1 && (
+          <div className="interval-toggle">
+            {availableIntervals.map((iv) => (
+              <button
+                key={iv}
+                className={`interval-btn${interval === iv ? " active" : ""}`}
+                onClick={() => setInterval(iv)}
+              >
+                {INTERVAL_LABELS[iv]?.label ?? iv}
+              </button>
+            ))}
+          </div>
+        )}
+
         <button
           className={`insight-toggle${insightOpen ? " open" : ""}`}
           onClick={() => setInsightOpen((o) => !o)}
@@ -103,18 +138,26 @@ export default function IntradayCorrelationChart({ data }) {
           <span className="insight-label">💡</span>
           <p>
             Each bar is one trading day's correlation between SPY and TLT
-            <em> within</em> that day, computed from 5-minute log returns
-            (n ≈ 78 bars per US session). <strong>Red = positive correlation
-            (rates regime)</strong>: stocks and bonds moved the same direction
-            on the day, meaning the dominant news driver was about rates rather
-            than growth. <strong>Green = negative correlation (growth regime)</strong>:
-            the textbook flight-to-safety pattern where bad equity news lifts
-            bonds. The signal here is the <strong>streak</strong>. A single
-            day's intraday correlation has 78 observations behind it — a run of
-            consecutive same-sign days is statistically a much sharper
+            <em> within</em> that day, computed from intraday log returns at the
+            selected sampling frequency.{" "}
+            <strong>Red = positive correlation (rates regime)</strong>: stocks
+            and bonds moved the same direction, meaning the day's news driver
+            was rates-related rather than growth-related.{" "}
+            <strong>Green = negative correlation (growth regime)</strong>: the
+            textbook flight-to-safety pattern where bad equity news rallies
+            bonds. The strongest signal is the <strong>streak</strong> — a run
+            of consecutive same-sign days is statistically a much sharper
             regime-shift indicator than the smoothed 60-day daily-data
-            correlation above. The 60-day daily series is a lagging average;
-            this is the leading version of the same question.
+            correlation chart above.
+          </p>
+          <p style={{ marginTop: 8 }}>
+            <strong>Why two sampling intervals?</strong> 5-minute bars give 78
+            observations per session — tighter per-day estimates that catch
+            consistent weak signals (longer streaks). 15-minute bars give 26
+            observations per session — cleaner magnitudes (less microstructure
+            noise, less Epps-effect attenuation) but more day-to-day noise
+            (shorter streaks). The same regime should look directionally
+            similar at both frequencies; if it does, the signal is robust.
           </p>
         </div>
       )}
@@ -122,7 +165,7 @@ export default function IntradayCorrelationChart({ data }) {
       <div style={{ width: "100%", height: 260 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={data}
+            data={series}
             margin={{ top: 16, right: 40, left: 4, bottom: 0 }}
           >
             <CartesianGrid vertical={false} stroke="#162038" />
@@ -130,7 +173,6 @@ export default function IntradayCorrelationChart({ data }) {
             <XAxis
               dataKey="date"
               tickFormatter={(v) => {
-                // Format as "MM-DD" for compactness
                 const parts = v.split("-");
                 return `${parts[1]}-${parts[2]}`;
               }}
@@ -149,12 +191,15 @@ export default function IntradayCorrelationChart({ data }) {
               width={36}
             />
 
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+            <Tooltip
+              content={<CustomTooltip intervalLabel={intervalMeta.label} />}
+              cursor={{ fill: "rgba(255,255,255,0.04)" }}
+            />
 
             <ReferenceLine y={0} stroke="#2e4460" strokeWidth={1.5} />
 
             <Bar dataKey="corr" maxBarSize={12} isAnimationActive={false}>
-              {data.map((d, i) => (
+              {series.map((d, i) => (
                 <Cell key={i} fill={barColor(d.corr)} fillOpacity={0.85} />
               ))}
             </Bar>
@@ -167,7 +212,7 @@ export default function IntradayCorrelationChart({ data }) {
           Red = positive correlation (rates regime, diversification fails) ·
           Green = negative correlation (growth regime, diversification works)
         </span>
-        <span>5-min bars · last 60 trading days (yfinance limit)</span>
+        <span>{intervalMeta.label} bars · last 60 trading days (yfinance limit)</span>
       </div>
     </div>
   );

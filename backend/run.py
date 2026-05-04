@@ -11,7 +11,7 @@ from fetch_data import (
     TDF_2055_TICKERS, TDF_2055_NAMES,
     CG_2055_TICKERS, CG_2055_NAMES,
     compute_log_returns, fetch_prices, fetch_sp500_history, fetch_vix_history,
-    fetch_yield_curve_spread, fetch_intraday_5min,
+    fetch_yield_curve_spread, fetch_intraday_data,
 )
 from risk_engine import (
     compute_asset_risk, compute_sp500_history, compute_rolling_correlation,
@@ -402,21 +402,29 @@ def main():
             v = vix_smooth.iloc[idx] if idx >= 0 else None
         entry["vix"] = round(float(v), 2) if v is not None and pd.notna(v) else None
 
-    # Intraday SPY-TLT correlation — daily values from 5-min bars.
-    # yfinance limits 5-min data to last 60 days; that's exactly the window
-    # we want for "is there a current rates regime?" detection.
-    print("Fetching 5-min intraday SPY and TLT for daily intraday correlation...")
-    intraday_corr = []
-    try:
-        spy_intra = fetch_intraday_5min("SPY")
-        tlt_intra = fetch_intraday_5min("TLT")
-        intraday_corr = compute_intraday_correlation_daily(spy_intra, tlt_intra)
-        if intraday_corr:
-            n_pos = sum(1 for r in intraday_corr if r["corr"] > 0)
-            print(f"  {len(intraday_corr)} trading days · "
-                  f"{n_pos} positive ({n_pos / len(intraday_corr) * 100:.0f}%)")
-    except Exception as e:
-        print(f"  WARNING: intraday correlation fetch failed ({e})")
+    # Intraday SPY-TLT correlation at multiple sampling intervals.
+    # 5-min:  more observations per day (78), but more microstructure noise / Epps attenuation
+    # 15-min: cleaner magnitudes (academic-literature default for cross-asset corr), but fewer obs (26)
+    # We compute both so the chart can offer a toggle and the user can verify
+    # the regime signal is robust across sampling choices.
+    intraday_corr = {}
+    for interval in ("5m", "15m"):
+        print(f"Fetching {interval} intraday SPY and TLT...")
+        try:
+            spy_intra = fetch_intraday_data("SPY", interval=interval)
+            tlt_intra = fetch_intraday_data("TLT", interval=interval)
+            # Threshold for valid days scales with sampling interval —
+            # need at least ~25% of a full session's observations
+            min_obs = 20 if interval == "5m" else 8
+            series = compute_intraday_correlation_daily(spy_intra, tlt_intra, min_obs=min_obs)
+            intraday_corr[f"interval_{interval}"] = series
+            if series:
+                n_pos = sum(1 for r in series if r["corr"] > 0)
+                print(f"  {interval}: {len(series)} trading days · "
+                      f"{n_pos} positive ({n_pos / len(series) * 100:.0f}%)")
+        except Exception as e:
+            print(f"  WARNING: {interval} intraday correlation fetch failed ({e})")
+            intraday_corr[f"interval_{interval}"] = []
 
     # Latest US-equity trading date represented in the data. We walk back from
     # the end of SPY's series until its price actually changes — this strips off

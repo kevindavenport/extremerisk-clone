@@ -141,14 +141,19 @@ def fetch_yield_curve_spread() -> tuple[float, float, float]:
     return y10, y3m, y10 - y3m
 
 
-def fetch_intraday_5min(ticker: str, period: str = "60d") -> pd.Series:
+def fetch_intraday_data(
+    ticker: str,
+    interval: str = "15m",
+    period: str = "60d",
+) -> pd.Series:
     """
-    Fetch 5-minute bars for `ticker` over the last 60 days (yfinance limit).
-    Used for intraday correlation analysis. Returns a price series indexed by
-    timezone-aware timestamps (US Eastern when available).
+    Fetch intraday bars for `ticker` over the last 60 days (yfinance limit).
+    Supported intervals: "1m" (7-day window only), "2m"/"5m"/"15m"/"30m"/"60m"
+    (60-day window). Returns a price series indexed by timezone-aware timestamps
+    (US Eastern when available).
     """
     raw = yf.download(
-        ticker, interval="5m", period=period, auto_adjust=True,
+        ticker, interval=interval, period=period, auto_adjust=True,
         progress=False, threads=False,
     )
     if isinstance(raw.columns, pd.MultiIndex):
