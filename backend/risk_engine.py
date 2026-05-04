@@ -1056,16 +1056,31 @@ def compute_multi_window_correlation(
         if df.empty:
             continue
 
+        # Compute all rolling correlations on the SAME DataFrame, then sample
+        # once at unified positions. This ensures all three series share the
+        # same date grid after sampling — a per-window dropna+sample approach
+        # would produce misaligned grids and a frontend merge-by-date would
+        # leave most rows with data for only one window.
+        rolling_combined = pd.DataFrame(index=df.index)
+        for w in windows:
+            rolling_combined[f"{w}d"] = df["a"].rolling(w).corr(df["b"])
+
+        # Drop initial rows where ALL windows are NaN, then sample on the
+        # unified index. NaN entries inside a window get dropped per-series
+        # below — keeps the longer windows from contributing junk while
+        # still aligning short-window data with long-window data.
+        rolling_combined = rolling_combined.dropna(how="all")
+        sampled = rolling_combined.iloc[::sample_every]
+
         bond_data = {}
         for w in windows:
-            rolling = df["a"].rolling(w).corr(df["b"]).dropna()
-            if rolling.empty:
+            col = f"{w}d"
+            non_null = sampled[col].dropna()
+            if non_null.empty:
                 continue
-            sampled = rolling.iloc[::sample_every]
-            bond_data[f"{w}d"] = [
+            bond_data[col] = [
                 {"date": idx.strftime("%Y-%m-%d"), "corr": round(float(v), 4)}
-                for idx, v in sampled.items()
-                if pd.notna(v)
+                for idx, v in non_null.items()
             ]
 
         if bond_data:
