@@ -122,9 +122,9 @@ function Section({ id, title, description, children }) {
         {expanded && description && (
           <span className="section-desc">{description}</span>
         )}
+        {expanded && hasRefs && <SectionReferences sectionId={id} />}
       </div>
       {children}
-      {expanded && hasRefs && <SectionReferences sectionId={id} />}
     </section>
   );
 }
