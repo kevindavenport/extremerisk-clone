@@ -293,6 +293,43 @@
   line-height: 1.65;
 }
 
+/* Per-section literature references — small, dim, italic. Quants will recognize
+   the citations; non-quants can click through to the canonical source. */
+.section-refs {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-dim);
+  line-height: 1.7;
+  padding: 8px 0 0;
+  border-top: 1px dashed var(--border);
+  margin-top: 6px;
+}
+
+.section-refs-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-style: normal;
+  margin-right: 8px;
+  color: var(--text-dim);
+}
+
+.section-refs a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.section-refs a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.section-refs-sep {
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
 .footer {
   display: flex;
   justify-content: space-between;

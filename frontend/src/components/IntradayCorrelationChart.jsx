@@ -82,12 +82,28 @@ export default function IntradayCorrelationChart({ data }) {
   const nTotal = series.length;
   const pctPositive = ((nPositive / nTotal) * 100).toFixed(0);
 
+  // Probability of the trailing streak occurring by chance under daily
+  // independence at the observed same-sign rate. If 78% of days are positive
+  // and the streak is positive, baseline p = 0.78 and P(streak ≥ k) = p^k.
+  // This is more informative than the "p = 0.5" null because it tests "is the
+  // regime DEEPER than the average daily rate would predict" rather than
+  // "is correlation different from zero".
+  const sameSignRate = lastSign > 0 ? (nPositive / nTotal) : ((nTotal - nPositive) / nTotal);
+  const streakProbability = Math.pow(sameSignRate, streak);
+  const oddsAgainst = streakProbability > 0
+    ? Math.max(1, Math.round(1 / streakProbability))
+    : null;
+  // Only show the probability if the streak is meaningfully unusual
+  const probText = (oddsAgainst != null && oddsAgainst >= 10)
+    ? ` · 1 in ${oddsAgainst.toLocaleString()} by chance`
+    : "";
+
   // Streak callout (regime + magnitude qualifier)
   const streakLabel =
     streak === 0 ? null
   : streak === 1 ? null  // single-day streak isn't a regime signal
-  : lastSign > 0 ? `${streak} consecutive positive days — rates-regime signal`
-                 : `${streak} consecutive negative days — growth-regime / diversification working`;
+  : lastSign > 0 ? `${streak} consecutive positive days — rates-regime signal${probText}`
+                 : `${streak} consecutive negative days — growth-regime / diversification working${probText}`;
 
   const availableIntervals = Array.isArray(data)
     ? null

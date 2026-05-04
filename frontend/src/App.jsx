@@ -27,6 +27,66 @@ const PORTFOLIO_SHORT_LABELS = {
   cg_2055:      "AF TARGET 2055",
 };
 
+// Curated literature references per section. Each entry is the canonical
+// reference for the methodology in that section — not exhaustive, just the
+// paper or book a reader would actually want to look at first.
+const SECTION_REFERENCES = {
+  "risk-snapshot": [
+    { label: 'J.P. Morgan, "RiskMetrics — Technical Document" (1996)' },
+    { label: 'Litterman, "Hot Spots and Hedges" (Goldman Sachs, 1996)' },
+    { label: 'McNeil, Frey & Embrechts, "Quantitative Risk Management" (Princeton, 2015)' },
+    { label: 'Hill, "A Simple General Approach to Inference About the Tail of a Distribution" (Annals of Statistics, 1975)', url: "https://doi.org/10.1214/aos/1176343247" },
+  ],
+  "risk-trajectory": [
+    { label: 'Engle, "Autoregressive Conditional Heteroscedasticity" (Econometrica, 1982)', url: "https://doi.org/10.2307/1912773" },
+    { label: 'Bollerslev, "Generalized ARCH" (J. Econometrics, 1986)', url: "https://doi.org/10.1016/0304-4076(86)90063-1" },
+    { label: 'J.P. Morgan, "RiskMetrics — Technical Document" (1996)' },
+  ],
+  "model-validation": [
+    { label: 'Kupiec, "Techniques for Verifying the Accuracy of Risk Measurement Models" (FRB FEDS, 1995)', url: "https://www.federalreserve.gov/econresdata/feds/1995/index.htm" },
+    { label: 'Christoffersen, "Evaluating Interval Forecasts" (Int. Econ. Review, 1998)', url: "https://doi.org/10.2307/2527341" },
+    { label: 'Glosten, Jagannathan & Runkle, "On the Relation between Expected Value and Volatility" (J. Finance, 1993)', url: "https://doi.org/10.1111/j.1540-6261.1993.tb05128.x" },
+  ],
+  "stress-tests": [
+    { label: 'Berkowitz, "A Coherent Framework for Stress-Testing" (J. Risk, 1999)', url: "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=181931" },
+    { label: 'BIS, "Stress testing principles" (Basel Committee on Banking Supervision, 2018)', url: "https://www.bis.org/bcbs/publ/d450.htm" },
+    { label: 'Estrella & Trubin, "The Yield Curve as a Leading Indicator" (NY Fed Current Issues, 2006)', url: "https://www.newyorkfed.org/research/current_issues/ci12-5.html" },
+  ],
+  "sp500-history": [
+    { label: 'Schwert, "Why Does Stock Market Volatility Change Over Time?" (J. Finance, 1989)', url: "https://doi.org/10.1111/j.1540-6261.1989.tb02647.x" },
+    { label: 'CBOE, "VIX Index Methodology — White Paper"', url: "https://cdn.cboe.com/api/global/us_indices/governance/Volatility_Index_Methodology_Cboe_Volatility_Index.pdf" },
+  ],
+  "correlation": [
+    { label: 'Forbes & Rigobon, "No Contagion, Only Interdependence" (J. Finance, 2002)', url: "https://doi.org/10.1111/0022-1082.00494" },
+    { label: 'Longin & Solnik, "Extreme Correlation of International Equity Markets" (J. Finance, 2001)', url: "https://doi.org/10.1111/0022-1082.00340" },
+    { label: 'Campbell, Pflueger & Viceira, "Macroeconomic Drivers of Bond and Equity Risks" (JPE, 2020)', url: "https://doi.org/10.1086/710552" },
+  ],
+  "intraday-corr": [
+    { label: 'Epps, "Comovements in Stock Prices in the Very Short Run" (JASA, 1979)', url: "https://doi.org/10.1080/01621459.1979.10481593" },
+    { label: 'Andersen, Bollerslev, Diebold & Labys, "The Distribution of Realized Exchange Rate Volatility" (JASA, 2001)' },
+    { label: 'Pflueger, Siriwardane & Sunderam, "A Measure of Risk Appetite for the Macroeconomy" (NBER WP 27906, 2020)', url: "https://www.nber.org/papers/w27906" },
+    { label: 'Campbell, Pflueger & Viceira, "Macroeconomic Drivers of Bond and Equity Risks" (JPE, 2020)', url: "https://doi.org/10.1086/710552" },
+  ],
+};
+
+function SectionReferences({ sectionId }) {
+  const refs = SECTION_REFERENCES[sectionId];
+  if (!refs?.length) return null;
+  return (
+    <div className="section-refs">
+      <span className="section-refs-label">Literature</span>
+      {refs.map((r, i) => (
+        <span key={i} className="section-refs-item">
+          {r.url
+            ? <a href={r.url} target="_blank" rel="noopener noreferrer">{r.label}</a>
+            : <span>{r.label}</span>}
+          {i < refs.length - 1 ? <span className="section-refs-sep"> · </span> : null}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -169,6 +229,7 @@ export default function App() {
               portfolioWeights={portfolio.weights}
               portfolioLabel={PORTFOLIO_SHORT_LABELS[mode] ?? "PORTFOLIO"}
             />
+            <SectionReferences sectionId="risk-snapshot" />
           </section>
         )}
         {portfolio?.risk_history?.length > 0 && (
@@ -178,6 +239,7 @@ export default function App() {
               <span className="section-desc">How has the active portfolio's daily risk evolved over time? This is the same EWMA VaR as the portfolio summary row in the table above, computed every trading day rather than just today's snapshot. Spikes line up with crises; the gradual return to baseline shows how regimes resolve. The history depth depends on which mode is selected — Vanguard reaches back to 2014, American Funds to 2007.</span>
             </div>
             <PortfolioRiskChart data={portfolio.risk_history} portfolioLabel={portfolio.label} />
+            <SectionReferences sectionId="risk-trajectory" />
           </section>
         )}
         {portfolio?.backtests && (
@@ -187,6 +249,7 @@ export default function App() {
               <span className="section-desc">Out-of-sample backtest of HS, EWMA, and EVT VaR models on the active portfolio. For each of the last 504 trading days, the model is given only the prior 1000 days to forecast that day's 1% VaR; we then compare against actual realized losses. The Kupiec test checks whether the observed exception rate matches the expected 1%; the Christoffersen test checks whether exceptions cluster (a sign of time-varying risk the model misses).</span>
             </div>
             <BacktestPanel data={portfolio.backtests} portfolioLabel={portfolio.label} />
+            <SectionReferences sectionId="model-validation" />
           </section>
         )}
         {portfolio?.scenarios && (
@@ -201,6 +264,7 @@ export default function App() {
               comparisons={scenarioComparisons}
               currentMode={mode}
             />
+            <SectionReferences sectionId="stress-tests" />
           </section>
         )}
         {data?.sp500_history && (
@@ -210,6 +274,7 @@ export default function App() {
               <span className="section-desc">How has U.S. equity market stress evolved year by year? Each bar shows the range of modeled daily loss estimates for that year. Reference data — does not change with portfolio toggle.</span>
             </div>
             <HistoricalChart data={data.sp500_history} />
+            <SectionReferences sectionId="sp500-history" />
           </section>
         )}
         {data?.correlation_history && (
@@ -219,6 +284,7 @@ export default function App() {
               <span className="section-desc">Are markets moving in lockstep? When assets rise together, diversification breaks down and portfolio risk is higher than any single holding suggests. Reference data — does not change with portfolio toggle.</span>
             </div>
             <CorrelationChart data={data.correlation_history} />
+            <SectionReferences sectionId="correlation" />
           </section>
         )}
         {data?.intraday_corr_history && (
@@ -229,9 +295,10 @@ export default function App() {
           <section id="intraday-corr" className="section">
             <div className="section-header">
               <span className="section-title">Market Context — Intraday Stock-Bond Correlation</span>
-              <span className="section-desc">A leading version of the chart above. Each bar is one trading day's SPY-TLT correlation computed from 5-minute bars (n ≈ 78 per session) — so each daily value is statistically meaningful on its own. A run of consecutive same-sign days is a much sharper regime-shift signal than the smoothed 60-day daily-data correlation can produce. Free intraday data via yfinance, limited to the last 60 trading days.</span>
+              <span className="section-desc">A leading version of the chart above. Each bar is one trading day's SPY-TLT correlation computed from intraday bars — so each daily value is statistically meaningful on its own. A run of consecutive same-sign days is a much sharper regime-shift signal than the smoothed 60-day daily-data correlation can produce. Free intraday data via yfinance, limited to the last 60 trading days.</span>
             </div>
             <IntradayCorrelationChart data={data.intraday_corr_history} />
+            <SectionReferences sectionId="intraday-corr" />
           </section>
         )}
       </main>
