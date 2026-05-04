@@ -174,6 +174,18 @@ Rolling 60-day average pairwise correlation across 10 core ETFs (SPY, QQQ, GLD, 
 **Why is 2022 the peak and not the GFC?**
 This is the most counterintuitive finding in the data. In the GFC (2008-09), equities crashed but treasuries and gold surged — flight to safety kept average pairwise correlation moderate. In 2022, the Fed's aggressive rate hiking cycle caused stocks AND bonds to sell off simultaneously, breaking the traditional 60/40 hedge. The correlation hit 0.70 — the highest in the dataset. The correlation breakdown problem is most dangerous in inflation and rate shocks, not just in equity crashes.
 
+**What is the Intraday Stock-Bond Correlation chart?**
+A leading version of the daily-data correlation chart above. Each bar is one trading day's SPY × TLT correlation computed from 5-minute log returns within that day (n ≈ 78 per US session). Red bars are positive correlation days (rates regime — the dominant news driver moves stocks and bonds the same direction); green bars are negative (growth regime — classic flight-to-safety). The chart shows the last 60 trading days, which is the limit on free intraday data via yfinance.
+
+**Why intraday rather than daily for correlation?**
+Statistical power per unit time. A daily-data correlation chart is a smoothed 60-day rolling average — by the time it shifts decisively, the regime has been live for a month or more. With 5-minute intraday bars, each *single trading day* gives ~78 observations, making each daily intraday correlation value a statistically meaningful estimate on its own. A run of consecutive same-sign days is therefore a much sharper regime-shift indicator. Under a null hypothesis of zero true correlation, the probability of e.g. 22 consecutive positive days by chance is roughly (0.5)^22 ≈ 1 in 4 million — so a streak like that is essentially a categorical signal, not noise.
+
+**Why does the chart only go back 60 days?**
+yfinance limits free 5-minute data to the last 60 calendar days. That's actually the right window for "is there a current regime?" — you don't need 5 years of intraday history to detect today's regime. For longer intraday history you'd need a paid feed (Alpha Vantage, Polygon, IBKR, Refinitiv).
+
+**What does a "rates regime" actually mean?**
+The dominant news driver hitting markets each day is rates-related: inflation surprises, Fed expectations, fiscal/issuance news. In a rates regime, both stocks and bonds respond to the same news in the same direction (an upside inflation surprise sends stocks down AND bonds down). Contrast with a growth regime where bad economic news sends stocks down but rallies bonds (flight to safety). The 2022 Fed hiking cycle was the textbook rates regime; what the chart shows now is whether we're in another one.
+
 
 ## What would I actually do with this?
 

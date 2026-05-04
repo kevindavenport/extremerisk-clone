@@ -139,3 +139,20 @@ def fetch_yield_curve_spread() -> tuple[float, float, float]:
     y10 = tnx_raw / 10 if tnx_raw > 30 else tnx_raw
     y3m = irx_raw  # already in percent
     return y10, y3m, y10 - y3m
+
+
+def fetch_intraday_5min(ticker: str, period: str = "60d") -> pd.Series:
+    """
+    Fetch 5-minute bars for `ticker` over the last 60 days (yfinance limit).
+    Used for intraday correlation analysis. Returns a price series indexed by
+    timezone-aware timestamps (US Eastern when available).
+    """
+    raw = yf.download(
+        ticker, interval="5m", period=period, auto_adjust=True,
+        progress=False, threads=False,
+    )
+    if isinstance(raw.columns, pd.MultiIndex):
+        s = raw["Close"].iloc[:, 0]
+    else:
+        s = raw["Close"]
+    return s.dropna()

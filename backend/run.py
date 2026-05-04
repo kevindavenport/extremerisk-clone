@@ -11,14 +11,15 @@ from fetch_data import (
     TDF_2055_TICKERS, TDF_2055_NAMES,
     CG_2055_TICKERS, CG_2055_NAMES,
     compute_log_returns, fetch_prices, fetch_sp500_history, fetch_vix_history,
-    fetch_yield_curve_spread,
+    fetch_yield_curve_spread, fetch_intraday_5min,
 )
 from risk_engine import (
     compute_asset_risk, compute_sp500_history, compute_rolling_correlation,
     compute_scenarios, compute_hypothetical_scenarios,
     compute_portfolio_risk_history, compute_component_var,
     backtest_portfolio_var, backtest_portfolio_garch,
-    nyfed_recession_probability, CORR_TICKERS,
+    nyfed_recession_probability, compute_intraday_correlation_daily,
+    CORR_TICKERS,
 )
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "data", "risk_output.json")
@@ -401,6 +402,22 @@ def main():
             v = vix_smooth.iloc[idx] if idx >= 0 else None
         entry["vix"] = round(float(v), 2) if v is not None and pd.notna(v) else None
 
+    # Intraday SPY-TLT correlation — daily values from 5-min bars.
+    # yfinance limits 5-min data to last 60 days; that's exactly the window
+    # we want for "is there a current rates regime?" detection.
+    print("Fetching 5-min intraday SPY and TLT for daily intraday correlation...")
+    intraday_corr = []
+    try:
+        spy_intra = fetch_intraday_5min("SPY")
+        tlt_intra = fetch_intraday_5min("TLT")
+        intraday_corr = compute_intraday_correlation_daily(spy_intra, tlt_intra)
+        if intraday_corr:
+            n_pos = sum(1 for r in intraday_corr if r["corr"] > 0)
+            print(f"  {len(intraday_corr)} trading days · "
+                  f"{n_pos} positive ({n_pos / len(intraday_corr) * 100:.0f}%)")
+    except Exception as e:
+        print(f"  WARNING: intraday correlation fetch failed ({e})")
+
     # Latest US-equity trading date represented in the data. We walk back from
     # the end of SPY's series until its price actually changes — this strips off
     # any trailing rows that are forward-fill artifacts from 24/7-traded tickers
@@ -412,12 +429,13 @@ def main():
     data_as_of = prices_10y.index[i].strftime("%Y-%m-%d")
 
     output = {
-        "generated_at":        datetime.now(timezone.utc).isoformat(),
-        "data_as_of":          data_as_of,
-        "default_mode":        "hypothetical",
-        "portfolios":          portfolios,
-        "sp500_history":       sp500_history,
-        "correlation_history": corr_history,
+        "generated_at":           datetime.now(timezone.utc).isoformat(),
+        "data_as_of":             data_as_of,
+        "default_mode":           "hypothetical",
+        "portfolios":             portfolios,
+        "sp500_history":          sp500_history,
+        "correlation_history":    corr_history,
+        "intraday_corr_history":  intraday_corr,
     }
 
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)

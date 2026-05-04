@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import RiskTable from "./components/RiskTable.jsx";
 import HistoricalChart from "./components/HistoricalChart.jsx";
 import CorrelationChart from "./components/CorrelationChart.jsx";
+import IntradayCorrelationChart from "./components/IntradayCorrelationChart.jsx";
 import PortfolioRiskChart from "./components/PortfolioRiskChart.jsx";
 import BacktestPanel from "./components/BacktestPanel.jsx";
 import ScenarioPanel from "./components/ScenarioPanel.jsx";
@@ -15,6 +16,7 @@ const NAV_LINKS = [
   { id: "stress-tests",    label: "Stress Tests" },
   { id: "sp500-history",   label: "S&P 500 History" },
   { id: "correlation",     label: "Correlation" },
+  { id: "intraday-corr",   label: "Intraday Corr" },
 ];
 
 // Short label shown on the portfolio summary row of the risk table.
@@ -217,6 +219,15 @@ export default function App() {
               <span className="section-desc">Are markets moving in lockstep? When assets rise together, diversification breaks down and portfolio risk is higher than any single holding suggests. Reference data — does not change with portfolio toggle.</span>
             </div>
             <CorrelationChart data={data.correlation_history} />
+          </section>
+        )}
+        {data?.intraday_corr_history?.length > 0 && (
+          <section id="intraday-corr" className="section">
+            <div className="section-header">
+              <span className="section-title">Market Context — Intraday Stock-Bond Correlation</span>
+              <span className="section-desc">A leading version of the chart above. Each bar is one trading day's SPY-TLT correlation computed from 5-minute bars (n ≈ 78 per session) — so each daily value is statistically meaningful on its own. A run of consecutive same-sign days is a much sharper regime-shift signal than the smoothed 60-day daily-data correlation can produce. Free intraday data via yfinance, limited to the last 60 trading days.</span>
+            </div>
+            <IntradayCorrelationChart data={data.intraday_corr_history} />
           </section>
         )}
       </main>

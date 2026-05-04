@@ -960,3 +960,53 @@ def nyfed_recession_probability(spread_pct: float) -> float:
     """
     z = -0.5333 - 0.6330 * spread_pct
     return float(norm.cdf(z))
+
+
+def compute_intraday_correlation_daily(
+    series_a: pd.Series,
+    series_b: pd.Series,
+    min_obs: int = 20,
+) -> list[dict]:
+    """
+    Daily intraday correlation between two intraday price series.
+
+    For each trading day, compute log returns on the within-day intraday bars
+    of both series, then take the Pearson correlation. Each daily value is its
+    own meaningful estimate (n ≈ 78 for 5-min bars over a 6.5-hour US session)
+    rather than a single point in a rolling daily-data window.
+
+    Returns one dict per trading day: {date, corr, n_obs}.
+
+    The methodological point: a single day's intraday correlation has
+    substantially more statistical power than a single day of daily-data
+    correlation. A run of consecutive same-sign days is therefore a much
+    sharper regime-shift signal than the rolling 60-day daily correlation.
+    """
+    # Align indexes and compute log returns on each
+    df = pd.concat([series_a.rename("a"), series_b.rename("b")], axis=1).dropna()
+    if len(df) < min_obs:
+        return []
+
+    log_ret = np.log(df / df.shift(1)).dropna()
+    if log_ret.empty:
+        return []
+
+    # Group by trading day. Use the underlying date to handle tz-aware indexes.
+    if hasattr(log_ret.index, "tz") and log_ret.index.tz is not None:
+        dates = log_ret.index.tz_convert("America/New_York").date
+    else:
+        dates = log_ret.index.date
+
+    results = []
+    for d, group in log_ret.groupby(dates):
+        if len(group) < min_obs:
+            continue
+        c = group["a"].corr(group["b"])
+        if pd.isna(c):
+            continue
+        results.append({
+            "date":  d.isoformat() if hasattr(d, "isoformat") else str(d),
+            "corr":  round(float(c), 4),
+            "n_obs": int(len(group)),
+        })
+    return results

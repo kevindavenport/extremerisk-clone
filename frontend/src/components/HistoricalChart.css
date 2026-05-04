@@ -131,3 +131,37 @@
   gap: 14px;
   margin-top: 3px;
 }
+
+/* Intraday correlation streak callout */
+.intraday-streak-callout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+}
+
+.intraday-streak-callout.rates {
+  background: rgba(229, 62, 62, 0.10);
+  border: 1px solid rgba(229, 62, 62, 0.35);
+  color: #f08080;
+}
+
+.intraday-streak-callout.growth {
+  background: rgba(0, 201, 122, 0.10);
+  border: 1px solid rgba(0, 201, 122, 0.35);
+  color: #6ddba2;
+}
+
+.streak-bullet {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.streak-text {
+  flex: 1;
+}
