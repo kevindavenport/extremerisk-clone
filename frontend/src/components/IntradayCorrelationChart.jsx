@@ -54,17 +54,17 @@ const CustomTooltip = ({ active, payload, label, intervalLabel }) => {
 export default function IntradayCorrelationChart({ data }) {
   // data is now an object: { interval_5m: [...], interval_15m: [...] }
   // Default to 15m (less microstructure noise, academic-literature standard).
-  const [interval, setInterval] = useState("15m");
+  const [samplingInterval, setSamplingInterval] = useState("15m");
   const [insightOpen, setInsightOpen] = useState(false);
 
   // Backward-compat: if data is still a flat array (old format), wrap it
   const series =
     Array.isArray(data) ? data
-    : data?.[`interval_${interval}`] ?? [];
+    : data?.[`interval_${samplingInterval}`] ?? [];
 
   if (!series.length) return null;
 
-  const intervalMeta = INTERVAL_LABELS[interval] ?? { label: interval, obsPerDay: "?" };
+  const intervalMeta = INTERVAL_LABELS[samplingInterval] ?? { label: samplingInterval, obsPerDay: "?" };
 
   // Identify trailing same-sign streak (the regime-shift signal)
   const last = series[series.length - 1];
@@ -108,8 +108,8 @@ export default function IntradayCorrelationChart({ data }) {
             {availableIntervals.map((iv) => (
               <button
                 key={iv}
-                className={`interval-btn${interval === iv ? " active" : ""}`}
-                onClick={() => setInterval(iv)}
+                className={`interval-btn${samplingInterval === iv ? " active" : ""}`}
+                onClick={() => setSamplingInterval(iv)}
               >
                 {INTERVAL_LABELS[iv]?.label ?? iv}
               </button>
