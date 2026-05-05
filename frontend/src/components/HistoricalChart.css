@@ -78,6 +78,19 @@
   color: var(--text);
 }
 
+/* Variant: stack paragraphs vertically inside the panel. The default panel
+   layout flexes its direct children side-by-side (icon + a single block of
+   text). For panels with multiple <p> blocks we wrap them in
+   .insight-content (column flex) so paragraphs stack rather than becoming
+   five narrow columns. */
+.insight-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
 .insight-label {
   font-size: 16px;
   flex-shrink: 0;
@@ -179,6 +192,40 @@
   padding: 2px;
   margin-left: auto;
   margin-right: 8px;
+}
+
+/* When the toggle sits inside .intraday-controls below the header, it should
+   line up flush left with its label rather than getting auto-pushed right. */
+.interval-toggle.interval-toggle--inline {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Dedicated row for chart toggles below the chart-header. Each control-group
+   pairs a small uppercase label with its toggle so users can see at a glance
+   what each one switches. Wraps gracefully on narrow screens. */
+.intraday-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+  margin: 4px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
 }
 
 .interval-btn {

@@ -23,11 +23,12 @@ from risk_engine import (
     CORR_TICKERS,
 )
 
-# Bond proxies for the multi-window stock-bond correlation chart. AGG and IEF
-# are added beyond the portfolio-resident TLT/LQD/HYG so we can show how the
-# regime is hitting different parts of the bond market spectrum (broad
-# aggregate vs intermediate Treasury vs IG corporate).
-EXTRA_BOND_PROXIES = ["AGG", "IEF"]
+# Extra tickers fetched beyond the portfolio universe.
+# - AGG: broad bond aggregate for the multi-window stock-bond correlation chart
+#        (alongside portfolio-resident TLT/IEF/LQD/HYG).
+# - UUP: USD index ETF — included in the cross-asset correlation basket as the
+#        FX risk-premium leg. Not held in the portfolio, so fetched separately.
+EXTRA_BOND_PROXIES = ["AGG", "UUP"]
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "data", "risk_output.json")
 
@@ -121,22 +122,28 @@ PROBABILITY_SOURCES = {
 
 # ---------------------------------------------------------------------------
 # Hypothetical blended portfolio weights (must sum to 1.0)
-#   Equity  60%: SPY 28, QQQ 12, EEM 8, IWM 7, XLF 5
-#   Fixed Income 30%: TLT 10, LQD 12, HYG 8
-#   Real Assets  8%: GLD 5, VNQ 3
-#   Crypto       2%: BTC-USD 2
+#   Equity (60%):       SPY 25, EFA 14, EEM 8, QQQ 8, IWM 5
+#   Fixed Income (30%): IEF 8, TLT 4, LQD 10, HYG 5, TIP 3
+#   Real Assets (8%):   GLD 4, DBC 2, VNQ 2
+#   Crypto (2%):        BTC-USD 2
+# Reweighted from a US-equity-heavy mix to give explicit DM-international
+# exposure (EFA), inflation protection (TIP), broad commodities (DBC), and
+# intermediate-duration Treasuries (IEF).
 # ---------------------------------------------------------------------------
 HYPOTHETICAL_WEIGHTS = {
-    "SPY":     0.28,
-    "QQQ":     0.12,
+    "SPY":     0.25,
+    "EFA":     0.14,
     "EEM":     0.08,
-    "IWM":     0.07,
-    "XLF":     0.05,
-    "TLT":     0.10,
-    "LQD":     0.12,
-    "HYG":     0.08,
-    "GLD":     0.05,
-    "VNQ":     0.03,
+    "QQQ":     0.08,
+    "IWM":     0.05,
+    "IEF":     0.08,
+    "TLT":     0.04,
+    "LQD":     0.10,
+    "HYG":     0.05,
+    "TIP":     0.03,
+    "GLD":     0.04,
+    "DBC":     0.02,
+    "VNQ":     0.02,
     "BTC-USD": 0.02,
 }
 
@@ -179,7 +186,7 @@ CG_2055_WEIGHTS = {
 PORTFOLIO_MODES = {
     "hypothetical": {
         "label":       "Hypothetical Portfolio",
-        "description": "An illustrative diversified mix: 60% equity, 30% fixed income, 8% real assets, 2% crypto. Built from 11 sector and asset-class ETFs.",
+        "description": "An illustrative diversified mix: 60% equity (US + intl developed + EM), 30% fixed income (Treasuries + IG + HY + TIPS), 8% real assets (gold + broad commodities + REITs), 2% crypto. Built from 14 asset-class ETFs.",
         "tickers":     TICKERS,
         "names":       NAMES,
         "weights":     HYPOTHETICAL_WEIGHTS,

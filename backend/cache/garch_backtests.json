@@ -1,15 +1,15 @@
 {
-  "generated_at": "2026-05-05T00:09:48.059029+00:00",
+  "generated_at": "2026-05-05T21:09:07.683381+00:00",
   "portfolios": {
     "hypothetical": [
       {
         "model": "GARCH",
-        "exceptions": 13,
+        "exceptions": 12,
         "expected": 5.0,
-        "rate_pct": 2.58,
+        "rate_pct": 2.38,
         "expected_pct": 1.0,
-        "kupiec_p": 0.0029,
-        "christoffersen_p": 0.3072,
+        "kupiec_p": 0.0082,
+        "christoffersen_p": 0.2541,
         "verdict": "UNDER-EST",
         "eval_dates": [
           "2024-12-18",
@@ -528,19 +528,18 @@
           "2025-11-13",
           "2026-01-20",
           "2026-03-03",
-          "2026-03-12",
           "2026-03-20",
           "2026-03-26"
         ]
       },
       {
         "model": "tGARCH",
-        "exceptions": 11,
+        "exceptions": 12,
         "expected": 5.0,
-        "rate_pct": 2.18,
+        "rate_pct": 2.38,
         "expected_pct": 1.0,
-        "kupiec_p": 0.0211,
-        "christoffersen_p": 0.2058,
+        "kupiec_p": 0.0082,
+        "christoffersen_p": 0.2541,
         "verdict": "UNDER-EST",
         "eval_dates": [
           "2024-12-18",
@@ -1054,12 +1053,13 @@
           "2025-03-10",
           "2025-04-03",
           "2025-04-04",
-          "2025-05-21",
           "2025-10-10",
           "2025-11-13",
           "2026-01-20",
           "2026-01-30",
-          "2026-03-03"
+          "2026-03-03",
+          "2026-03-20",
+          "2026-03-26"
         ]
       }
     ],

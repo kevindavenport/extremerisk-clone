@@ -5,22 +5,26 @@ import numpy as np
 
 
 TICKERS = [
-    "SPY", "QQQ", "GLD", "TLT", "EEM", "BTC-USD",
-    "IWM", "HYG", "LQD", "XLF", "VNQ",
+    "SPY", "EFA", "EEM", "QQQ", "IWM",
+    "IEF", "TLT", "LQD", "HYG", "TIP",
+    "GLD", "DBC", "VNQ", "BTC-USD",
 ]
 
 NAMES = {
     "SPY":    "S&P 500 ETF",
-    "QQQ":    "Nasdaq 100 ETF",
-    "GLD":    "Gold ETF",
-    "TLT":    "20yr Treasury ETF",
+    "EFA":    "MSCI EAFE (Intl Developed) ETF",
     "EEM":    "Emerging Markets ETF",
-    "BTC-USD":"Bitcoin / USD",
+    "QQQ":    "Nasdaq 100 ETF",
     "IWM":    "Russell 2000 ETF",
-    "HYG":    "High Yield Bond ETF",
+    "IEF":    "7-10yr Treasury ETF",
+    "TLT":    "20yr Treasury ETF",
     "LQD":    "Investment Grade Bond ETF",
-    "XLF":    "Financial Sector ETF",
+    "HYG":    "High Yield Bond ETF",
+    "TIP":    "TIPS (Inflation-Linked) ETF",
+    "GLD":    "Gold ETF",
+    "DBC":    "Broad Commodities ETF",
     "VNQ":    "Real Estate ETF",
+    "BTC-USD":"Bitcoin / USD",
 }
 
 # Underlying holdings of Vanguard Target Retirement 2055 (VFFVX),

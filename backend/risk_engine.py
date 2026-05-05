@@ -171,7 +171,7 @@ def compute_sp500_history(returns: pd.Series, prices: pd.Series, vix: pd.Series 
 
 # Tickers with sufficient history for the cross-asset correlation chart.
 # Excludes BTC-USD (launched 2014) so the series starts ~2007 and captures the GFC.
-CORR_TICKERS = ["SPY", "QQQ", "GLD", "TLT", "EEM", "IWM", "HYG", "LQD", "XLF", "VNQ"]
+CORR_TICKERS = ["SPY", "EFA", "EEM", "TLT", "LQD", "HYG", "GLD", "DBC", "VNQ", "UUP"]
 
 
 def compute_portfolio_risk_history(
@@ -381,16 +381,20 @@ HYPOTHETICAL_SCENARIOS = [
         "desc": "PLA military action triggers semiconductor supply shock and broad Asia risk-off",
         "shocks": {
             "SPY":     -0.15,
-            "QQQ":     -0.22,   # TSMC/NVDA/ASML heavy in Nasdaq
-            "GLD":     +0.14,   # flight to safety
-            "TLT":     +0.09,   # flight to safety, rate cut expectations
+            "EFA":     -0.13,   # intl developed, Japan-heavy → Asia spillover
             "EEM":     -0.22,   # EM Asia exposure
-            "BTC-USD": -0.28,   # crypto risk-off
+            "QQQ":     -0.22,   # TSMC/NVDA/ASML heavy in Nasdaq
             "IWM":     -0.14,
-            "HYG":     -0.09,   # credit spread widening
+            "IEF":     +0.05,   # flight to safety, intermediate Treasuries
+            "TLT":     +0.09,   # flight to safety, rate cut expectations
             "LQD":     +0.02,
-            "XLF":     -0.11,
+            "HYG":     -0.09,   # credit spread widening
+            "TIP":     +0.04,   # real yields fall + commodity inflation
+            "GLD":     +0.14,   # flight to safety
+            "DBC":     +0.08,   # broad commodities — oil/metals supply shock
             "VNQ":     -0.10,
+            "BTC-USD": -0.28,   # crypto risk-off
+            "XLF":     -0.11,   # legacy: kept for any portfolio still holding
             # TDF underlying holdings
             "VTI":     -0.15,   # US total market
             "VXUS":    -0.20,   # intl total — heavier Asia weight
@@ -417,16 +421,20 @@ HYPOTHETICAL_SCENARIOS = [
         "desc": "Strait of Hormuz disruption drives oil toward $150, stagflation fears spike",
         "shocks": {
             "SPY":     -0.09,
-            "QQQ":     -0.08,
-            "GLD":     +0.13,   # oil/safe haven
-            "TLT":     +0.04,
+            "EFA":     -0.10,   # Europe/Japan oil-importer hit
             "EEM":     -0.13,
-            "BTC-USD": -0.18,
+            "QQQ":     -0.08,
             "IWM":     -0.09,
-            "HYG":     -0.07,
+            "IEF":     +0.02,   # modest flight to safety, capped by inflation
+            "TLT":     +0.04,
             "LQD":     +0.01,
-            "XLF":     -0.08,
+            "HYG":     -0.07,
+            "TIP":     +0.05,   # inflation hedge benefits in oil shock
+            "GLD":     +0.13,   # oil/safe haven
+            "DBC":     +0.18,   # commodity index, oil-heavy — biggest beneficiary
             "VNQ":     -0.07,
+            "BTC-USD": -0.18,
+            "XLF":     -0.08,   # legacy
             # TDF underlying holdings
             "VTI":     -0.09,
             "VXUS":    -0.11,   # intl exposure to oil shock
@@ -453,16 +461,20 @@ HYPOTHETICAL_SCENARIOS = [
         "desc": "GDP contraction triggers Fed pivot, credit spreads widen, earnings fall",
         "shocks": {
             "SPY":     -0.28,
-            "QQQ":     -0.32,
-            "GLD":     +0.08,
-            "TLT":     +0.18,   # aggressive rate cuts
+            "EFA":     -0.22,   # global recession spillover, less leverage than US
             "EEM":     -0.22,
-            "BTC-USD": -0.45,
+            "QQQ":     -0.32,
             "IWM":     -0.32,   # small caps hit hardest
-            "HYG":     -0.16,   # high yield blowout
+            "IEF":     +0.10,   # rate cuts benefit, less duration than TLT
+            "TLT":     +0.18,   # aggressive rate cuts
             "LQD":     +0.04,
-            "XLF":     -0.30,   # financials crater
+            "HYG":     -0.16,   # high yield blowout
+            "TIP":     +0.06,   # real yields fall, but inflation also falls
+            "GLD":     +0.08,
+            "DBC":     -0.18,   # demand collapse hits commodities
             "VNQ":     -0.22,
+            "BTC-USD": -0.45,
+            "XLF":     -0.30,   # legacy: financials crater
             # TDF underlying holdings
             "VTI":     -0.28,
             "VXUS":    -0.24,   # global recession spillover
@@ -489,16 +501,20 @@ HYPOTHETICAL_SCENARIOS = [
         "desc": "Demand disappointment or capex reality check causes mega-cap tech repricing",
         "shocks": {
             "SPY":     -0.18,
-            "QQQ":     -0.35,   # highest concentration in AI names
-            "GLD":     +0.05,
-            "TLT":     +0.08,
+            "EFA":     -0.10,   # less mega-cap AI concentration
             "EEM":     -0.10,
-            "BTC-USD": -0.30,   # correlated risk-off
+            "QQQ":     -0.35,   # highest concentration in AI names
             "IWM":     -0.12,
-            "HYG":     -0.08,
+            "IEF":     +0.05,   # modest flight to quality
+            "TLT":     +0.08,
             "LQD":     +0.02,
-            "XLF":     -0.14,
+            "HYG":     -0.08,
+            "TIP":     +0.03,
+            "GLD":     +0.05,
+            "DBC":     -0.05,   # modest growth scare
             "VNQ":     -0.08,
+            "BTC-USD": -0.30,   # correlated risk-off
+            "XLF":     -0.14,   # legacy
             # TDF underlying holdings
             "VTI":     -0.18,   # broad market, includes AI exposure
             "VXUS":    -0.10,   # less direct AI concentration
@@ -974,6 +990,74 @@ def nyfed_recession_probability(spread_pct: float) -> float:
     return float(norm.cdf(z))
 
 
+# ---------------------------------------------------------------------------
+# QMLE integrated-variance estimator (Xiu 2010) and polarization-based
+# integrated-correlation estimator (Aït-Sahalia, Fan & Xiu 2010).
+#
+# Why this exists:
+#   Naive realized variance from intraday log returns is biased upward by
+#   microstructure noise (bid-ask bounce, tick discreteness): observed log
+#   prices behave as latent log price + iid noise, so observed returns are
+#   ε_i + (u_i - u_{i-1}). That's exactly an MA(1) around the true return
+#   process. Xiu (2010) showed that the QMLE of an MA(1) representation
+#   recovers integrated variance consistently in the presence of noise:
+#       Var(r_i)         = σ²Δ + 2a²       = ψ²(1 + θ²)
+#       Cov(r_i, r_{i-1}) = -a²            = ψ² θ
+#   Solving:  a² = -ψ²θ   (requires θ < 0)
+#             IV = n · σ²Δ = n · ψ²(1 + θ)²
+#
+#   For covariance, AFX (2010) use the polarization identity:
+#       Cov(X, Y) = [IV(X+Y) - IV(X-Y)] / 4
+#   applied to the QMLE-cleaned IV of each of X, Y, X+Y, X-Y.
+#
+# For SPY × TLT at 5m / 15m bars the SNR is high (~5–15× for SPY, ~2–4×
+# for TLT) so the noise correction is small (typically |Δρ| ≤ 0.05). We
+# expose this as a "show your work" benchmark so the audience can verify
+# the regime signal is robust to estimator choice. QMLE earns its keep
+# at finer sampling (1m/tick) or on illiquid pairs.
+# ---------------------------------------------------------------------------
+def _qmle_iv(returns: np.ndarray) -> tuple[float, str]:
+    """
+    Estimate integrated variance from a sequence of intraday log returns
+    via Xiu-2010 QMLE on the MA(1) representation of noisy log returns.
+
+    Returns (IV, method) where method is:
+      "qmle"  — MA(1) fit succeeded with θ < 0 (microstructure noise present
+                and removed)
+      "rv"    — MA(1) θ ≥ 0 (no noise detected); fell back to realized variance
+                (sum of squared returns)
+      "fail"  — ARIMA fit raised; fell back to realized variance
+    """
+    rv = float(np.sum(returns ** 2))
+    n = len(returns)
+    if n < 5:
+        return rv, "rv"
+    try:
+        from statsmodels.tsa.arima.model import ARIMA
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            model = ARIMA(returns, order=(0, 0, 1), trend="n")
+            fit   = model.fit(method_kwargs={"warn_convergence": False})
+        # statsmodels: maparams gives the MA(1) coefficient θ; sigma2 is the
+        # innovation variance ψ². fit.params is a numpy array whose last entry
+        # is sigma2 when trend="n" with order=(0,0,1).
+        theta = float(fit.maparams[0]) if len(fit.maparams) else 0.0
+        params_arr = np.asarray(fit.params)
+        psi2 = float(params_arr[-1])
+        if not np.isfinite(theta) or not np.isfinite(psi2) or psi2 <= 0:
+            return rv, "fail"
+        if theta >= 0:
+            # No microstructure noise picked up — the QMLE reduces to RV
+            return rv, "rv"
+        IV = n * psi2 * (1 + theta) ** 2
+        if not np.isfinite(IV) or IV <= 0:
+            return rv, "fail"
+        return float(IV), "qmle"
+    except Exception:
+        return rv, "fail"
+
+
 def compute_intraday_correlation_daily(
     series_a: pd.Series,
     series_b: pd.Series,
@@ -1013,13 +1097,44 @@ def compute_intraday_correlation_daily(
     for d, group in log_ret.groupby(dates):
         if len(group) < min_obs:
             continue
+
         c = group["a"].corr(group["b"])
         if pd.isna(c):
             continue
+
+        # QMLE polarization (AFX 2010): clean each of X, Y, X+Y, X-Y with
+        # Xiu-2010 QMLE, then Cov(X,Y) = [IV(X+Y) - IV(X-Y)] / 4.
+        rx = group["a"].to_numpy()
+        ry = group["b"].to_numpy()
+        IV_x,    m_x  = _qmle_iv(rx)
+        IV_y,    m_y  = _qmle_iv(ry)
+        IV_sum,  m_s  = _qmle_iv(rx + ry)
+        IV_diff, m_d  = _qmle_iv(rx - ry)
+
+        methods = (m_x, m_y, m_s, m_d)
+        if "fail" in methods or IV_x <= 0 or IV_y <= 0:
+            corr_qmle   = float(c)        # fall back to naive
+            qmle_method = "fallback"
+        else:
+            cov_qmle = (IV_sum - IV_diff) / 4.0
+            denom    = np.sqrt(IV_x * IV_y)
+            raw      = cov_qmle / denom if denom > 0 else float(c)
+            # Polarization can occasionally pop outside [-1, 1] on noisy days
+            corr_qmle = float(max(-1.0, min(1.0, raw)))
+            if all(m == "qmle" for m in methods):
+                qmle_method = "qmle"
+            else:
+                # Some legs reduced to RV (no noise detected); still a valid
+                # noise-aware estimate, just labeled distinctly.
+                qmle_method = "qmle_partial"
+
         results.append({
-            "date":  d.isoformat() if hasattr(d, "isoformat") else str(d),
-            "corr":  round(float(c), 4),
-            "n_obs": int(len(group)),
+            "date":         d.isoformat() if hasattr(d, "isoformat") else str(d),
+            "corr":         round(float(c), 4),         # naive RV correlation (legacy field)
+            "corr_naive":   round(float(c), 4),
+            "corr_qmle":    round(corr_qmle, 4),
+            "n_obs":        int(len(group)),
+            "qmle_method":  qmle_method,
         })
     return results
 
